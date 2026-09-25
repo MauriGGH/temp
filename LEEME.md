@@ -41,33 +41,24 @@ En la fase 7 esto se elige desde Ajustes y se guarda en DataStore.
 3. En `ui/theme/Type.kt`, cambia `appFontFamily` por un `FontFamily(...)`
    que declare esos archivos.
 
-## Siguientes fases
+## Qué funciona ya
 
-2. Room, repositorios y datos iniciales (tus hábitos y las sesiones A y B).
-3. Hoy y Hábitos funcionando: marcar, anillo de fuerza, lista de espera.
-4. Entreno: alternancia A/B, registro por ejercicio e historial.
-5. Agenda y calendario del teléfono.
-6. Revisión semanal y regla de desbloqueo.
-7. Notas, Ajustes, tema oscuro y exportar/importar.
-8. Estudio (repetición espaciada), finanzas y retos.
+- **Hoy:** sesión que toca (A o B), hábitos del día marcables con un toque y temas de repaso pendientes.
+- **Hábitos:** crear hábitos con nombre, ancla y días; anillo de fuerza que sube y baja pero nunca se reinicia; lista de espera con activación.
+- **Entreno:** alterna A y B según la última sesión, marca ejercicios, guarda el esfuerzo (fácil, justo, difícil) e historial.
+- **Finanzas:** ingresos y gastos, balance del mes y lista de movimientos.
+- **Retos:** mascota, nivel, puntos, escalera de siete rangos con su símbolo, retos de proceso y recompensas propias.
+- **Estudio:** temas con repetición espaciada (SM-2 simplificado), recuperación activa e intercalado de materias.
+- **Agenda:** bloques por día y periodo.
+- **Revisión semanal:** conteos, automatismo del 1 al 5, reflexión y aviso de cuándo agregar un hábito nuevo.
+- **Notas:** diario libre con lugar.
+- **Ajustes:** color de acento, tema claro/oscuro/sistema, respaldo en JSON (copiar, compartir, importar) y reinicio.
 
-## Subirlo a GitHub
+Todo se guarda en el teléfono (SharedPreferences con JSON). Sin cuentas, sin internet.
 
-```bash
-git init
-git add .
-git commit -m "Fase 1: base visual y navegación"
-git branch -M main
-git remote add origin https://github.com/TU_USUARIO/habitos.git
-git push -u origin main
-```
+## Pendiente para más adelante
 
-Crea el repositorio vacío en GitHub primero (sin README ni .gitignore,
-porque este proyecto ya los trae).
-
-## Compilar el APK sin Android Studio
-
-El flujo `.github/workflows/android.yml` compila el APK en cada push a `main`.
-Entra a la pestaña **Actions** del repositorio, abre la ejecución más reciente
-y descarga el artefacto `habitos-debug-apk`. Ese APK se instala directo en tu
-teléfono activando "instalar apps de origen desconocido".
+- Recordatorios con WorkManager.
+- Escribir los bloques y repasos en el calendario del teléfono.
+- Tipografía Plus Jakarta Sans.
+- Variantes de la mascota por rango.
