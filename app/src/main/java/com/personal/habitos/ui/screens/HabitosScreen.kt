@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,7 +33,9 @@ import com.personal.habitos.data.fuerzaHabito
 import com.personal.habitos.data.hechoEn
 import com.personal.habitos.data.marcasDe
 import com.personal.habitos.data.vecesEnSemana
+import com.personal.habitos.ui.components.AnilloProgreso
 import com.personal.habitos.ui.components.GlassCard
+import com.personal.habitos.ui.components.PuntoDia
 import com.personal.habitos.ui.components.GlassList
 import com.personal.habitos.ui.theme.LocalGlassColors
 
@@ -168,66 +169,69 @@ private fun TarjetaHabito(
 ) {
     val fuerza = fuerzaHabito(habito, Repo.marcasDe(habito))
     val glass = LocalGlassColors.current
+    val veces = vecesEnSemana(habito.id, Repo.estado.marcas)
 
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = { fuerza },
-                    modifier = Modifier.size(52.dp),
-                    strokeWidth = 6.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = glass.divider
+            AnilloProgreso(progreso = fuerza, tamano = 56.dp, grosor = 7.dp) {
+                Text(
+                    "${(fuerza * 100).toInt()}",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(habito.nombre, fontWeight = FontWeight.Bold)
-                Textito(etapaFuerza(fuerza) + if (habito.ancla.isNotBlank()) " · ${habito.ancla}" else "")
-                Textito("${vecesEnSemana(habito.id, Repo.estado.marcas)} veces esta semana")
+                Text(habito.nombre, fontWeight = FontWeight.Bold, maxLines = 2)
+                Textito(etapaFuerza(fuerza))
+                if (habito.ancla.isNotBlank()) Textito(habito.ancla)
             }
-            Icon(
-                Icons.Filled.Edit,
-                contentDescription = "Editar ${habito.nombre}",
-                tint = glass.textMuted,
-                modifier = Modifier.clickable { onEditar() }
-            )
-            Icon(
-                Icons.Filled.Delete,
-                contentDescription = "Borrar ${habito.nombre}",
-                tint = glass.textMuted,
-                modifier = Modifier.clickable { onBorrar() }
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = "Editar ${habito.nombre}",
+                    tint = glass.textMuted,
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clickable { onEditar() }
+                )
+                Box(Modifier.size(14.dp))
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = "Borrar ${habito.nombre}",
+                    tint = glass.textMuted,
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clickable { onBorrar() }
+                )
+            }
         }
+
+        Separador()
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             (1..7).forEach { dia ->
-                val aplica = habito.dias.contains(dia)
-                val hecho = Repo.hechoEn(habito, dia)
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier.size(26.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            progress = { if (hecho) 1f else 0f },
-                            modifier = Modifier.size(22.dp),
-                            strokeWidth = 5.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = if (aplica) glass.divider else glass.glass
-                        )
-                    }
-                    Textito(diasCortos[dia - 1])
-                }
+                PuntoDia(
+                    hecho = Repo.hechoEn(habito, dia),
+                    aplica = habito.dias.contains(dia),
+                    etiqueta = diasCortos[dia - 1]
+                )
             }
         }
 
-        BotonTexto("Pausar y mandar a la lista") { onAEspera() }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Etiqueta("$veces esta semana")
+            BotonTexto("Pausar") { onAEspera() }
+        }
     }
 }
 

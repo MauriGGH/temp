@@ -16,23 +16,39 @@ data class GlassColors(
     val glass: Color,
     val glassStrong: Color,
     val glassBorder: Color,
+    val glassGlow: Color,
     val divider: Color,
     val textMuted: Color,
-    val blobs: List<Color>,
+    val fondo: Color,
+    val fondoAlt: Color,
     val isDark: Boolean
 )
 
-val LocalGlassColors = staticCompositionLocalOf {
-    GlassColors(
-        glass = Palette.LightGlass,
-        glassStrong = Palette.LightGlassStrong,
-        glassBorder = Palette.LightGlassBorder,
-        divider = Palette.LightDivider,
-        textMuted = Palette.LightTextMuted,
-        blobs = listOf(Palette.BlobLavender, Palette.BlobPeach, Palette.BlobBlue),
-        isDark = false
-    )
-}
+private val glassClaro = GlassColors(
+    glass = Palette.LightGlass,
+    glassStrong = Palette.LightGlassStrong,
+    glassBorder = Palette.LightGlassBorder,
+    glassGlow = Palette.LightGlassGlow,
+    divider = Palette.LightDivider,
+    textMuted = Palette.LightTextMuted,
+    fondo = Palette.LightBackground,
+    fondoAlt = Palette.LightBackgroundAlt,
+    isDark = false
+)
+
+private val glassOscuro = GlassColors(
+    glass = Palette.DarkGlass,
+    glassStrong = Palette.DarkGlassStrong,
+    glassBorder = Palette.DarkGlassBorder,
+    glassGlow = Palette.DarkGlassGlow,
+    divider = Palette.DarkDivider,
+    textMuted = Palette.DarkTextMuted,
+    fondo = Palette.DarkBackground,
+    fondoAlt = Palette.DarkBackgroundAlt,
+    isDark = true
+)
+
+val LocalGlassColors = staticCompositionLocalOf { glassClaro }
 
 @Composable
 fun HabitosTheme(
@@ -60,27 +76,7 @@ fun HabitosTheme(
         )
     }
 
-    val glass = if (darkTheme) {
-        GlassColors(
-            glass = Palette.DarkGlass,
-            glassStrong = Palette.DarkGlassStrong,
-            glassBorder = Palette.DarkGlassBorder,
-            divider = Palette.DarkDivider,
-            textMuted = Palette.DarkTextMuted,
-            blobs = listOf(Palette.DarkBlobIndigo, Palette.DarkBlobRust, Palette.DarkBlobBlue),
-            isDark = true
-        )
-    } else {
-        GlassColors(
-            glass = Palette.LightGlass,
-            glassStrong = Palette.LightGlassStrong,
-            glassBorder = Palette.LightGlassBorder,
-            divider = Palette.LightDivider,
-            textMuted = Palette.LightTextMuted,
-            blobs = listOf(Palette.BlobLavender, Palette.BlobPeach, Palette.BlobBlue),
-            isDark = false
-        )
-    }
+    val glass = if (darkTheme) glassOscuro else glassClaro
 
     CompositionLocalProvider(LocalGlassColors provides glass) {
         MaterialTheme(

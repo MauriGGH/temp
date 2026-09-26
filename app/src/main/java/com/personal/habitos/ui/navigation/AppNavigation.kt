@@ -32,7 +32,7 @@ import com.personal.habitos.ui.screens.NotasScreen
 import com.personal.habitos.ui.screens.RetosScreen
 import com.personal.habitos.ui.screens.RevisionScreen
 
-private val margenInferior = PaddingValues(bottom = 112.dp)
+private val margenInferior = PaddingValues(bottom = 132.dp)
 
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {

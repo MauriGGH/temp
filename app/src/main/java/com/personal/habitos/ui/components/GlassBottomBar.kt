@@ -51,6 +51,11 @@ fun GlassBottomBar(
             )
             .clip(shape)
             .background(glass.glassStrong)
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(glass.glassGlow, androidx.compose.ui.graphics.Color.Transparent)
+                )
+            )
             .border(1.dp, glass.glassBorder, shape)
             .padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.SpaceAround,
@@ -62,7 +67,16 @@ fun GlassBottomBar(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(if (activo) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .background(
+                        if (activo) androidx.compose.ui.graphics.Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
+                            )
+                        ) else androidx.compose.ui.graphics.Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Transparent)
+                        )
+                    )
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -74,7 +88,7 @@ fun GlassBottomBar(
                     imageVector = destino.icono,
                     contentDescription = null,
                     tint = if (activo) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onBackground
+                    else glass.textMuted
                 )
             }
         }

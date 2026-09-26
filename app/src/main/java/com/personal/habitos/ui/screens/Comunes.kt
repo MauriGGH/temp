@@ -40,7 +40,7 @@ import com.personal.habitos.ui.theme.LocalGlassColors
 @Composable
 fun Pantalla(
     titulo: String,
-    contentPadding: PaddingValues = PaddingValues(bottom = 112.dp),
+    contentPadding: PaddingValues = PaddingValues(bottom = 132.dp),
     subtitulo: String? = null,
     onVolver: (() -> Unit)? = null,
     accion: (@Composable () -> Unit)? = null,
@@ -51,8 +51,8 @@ fun Pantalla(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .statusBarsPadding()
-            .padding(horizontal = 20.dp)
-            .padding(top = 20.dp)
+            .padding(horizontal = 18.dp)
+            .padding(top = 18.dp)
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
