@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.personal.habitos.data.Repo
 import com.personal.habitos.ui.navigation.AppNavigation
+import com.personal.habitos.ui.screens.BienvenidaScreen
 import com.personal.habitos.ui.theme.AccentOption
 import com.personal.habitos.ui.theme.HabitosTheme
 
@@ -25,7 +26,7 @@ class MainActivity : ComponentActivity() {
                 else -> isSystemInDarkTheme()
             }
             HabitosTheme(accent = acento, darkTheme = oscuro) {
-                AppNavigation()
+                if (estado.iniciado) AppNavigation() else BienvenidaScreen()
             }
         }
     }

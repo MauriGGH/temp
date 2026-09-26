@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,26 +37,54 @@ import java.time.LocalDate
 import java.time.format.TextStyle as EstiloTexto
 import java.util.Locale
 
+private val periodosDelDia = listOf("Mañana", "Tarde", "Noche")
+
 @Composable
 fun HoyScreen(
     contentPadding: PaddingValues,
     irAEntreno: () -> Unit,
-    irAEstudio: () -> Unit
+    irAEstudio: () -> Unit,
+    irANotas: () -> Unit,
+    irAAjustes: () -> Unit
 ) {
     val estado = Repo.estado
     val hoy = LocalDate.now()
     val diaSemana = hoy.dayOfWeek.value
     val sesion = siguienteSesion(estado.sesiones)
     val pendientes = temasDeHoy(estado.temas, hoy)
+    val bloquesHoy = estado.bloques.filter { it.dia == diaSemana }
     val fecha = hoy.dayOfWeek.getDisplayName(EstiloTexto.FULL, Locale("es")) +
         ", " + hoy.dayOfMonth + " de " +
         hoy.month.getDisplayName(EstiloTexto.FULL, Locale("es"))
 
-    Pantalla(titulo = "Hoy", contentPadding = contentPadding, subtitulo = fecha) {
+    Pantalla(
+        titulo = "Hoy",
+        contentPadding = contentPadding,
+        subtitulo = fecha,
+        accion = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                BotonRedondo(onClick = irANotas, descripcion = "Notas") {
+                    Icon(Icons.Filled.Edit, contentDescription = null)
+                }
+                BotonRedondo(onClick = irAAjustes, descripcion = "Ajustes") {
+                    Icon(Icons.Filled.Settings, contentDescription = null)
+                }
+            }
+        }
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
             GlassCard(modifier = Modifier.fillMaxWidth()) {
-                Textito("Hoy toca entrenar")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Textito("Hoy toca entrenar")
+                    if (estado.sesiones.isNotEmpty()) {
+                        Etiqueta("La última fue ${if (sesion == "A") "B" else "A"}")
+                    }
+                }
                 Text("Sesión $sesion", style = MaterialTheme.typography.headlineSmall)
                 Textito(
                     estado.plantillas.firstOrNull { it.nombre == sesion }
@@ -89,6 +119,35 @@ fun HoyScreen(
                     BotonPrincipal("Repasar", Modifier.fillMaxWidth()) { irAEstudio() }
                 }
             }
+
+            if (bloquesHoy.isNotEmpty()) {
+                Text("Tu día", style = MaterialTheme.typography.titleMedium)
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    periodosDelDia.forEach { periodo ->
+                        val delPeriodo = bloquesHoy.filter { it.periodo == periodo }
+                        delPeriodo.forEach { bloque ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (bloque.tipo == "libre") LocalGlassColors.current.textMuted
+                                            else MaterialTheme.colorScheme.primary
+                                        )
+                                )
+                                Textito(periodo, Modifier.padding(end = 4.dp))
+                                Text(bloque.titulo, fontWeight = FontWeight.Bold)
+                                if (bloque.tipo == "libre") Etiqueta("Planeado")
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -107,7 +166,13 @@ private fun FilaHabito(habito: Habito, aplicaHoy: Boolean) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(habito.nombre, fontWeight = FontWeight.Bold)
-            Textito(if (aplicaHoy) habito.ancla else "Hoy no toca")
+            Textito(
+                when {
+                    !aplicaHoy -> "Hoy no toca"
+                    habito.ancla.isNotBlank() -> habito.ancla
+                    else -> "Cuando puedas"
+                }
+            )
         }
         Box(
             modifier = Modifier

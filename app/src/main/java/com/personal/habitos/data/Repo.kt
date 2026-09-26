@@ -52,6 +52,8 @@ object Repo {
 
     fun reiniciar() = actualizar { estadoInicial() }
 
+    fun terminarBienvenida(habitos: List<Habito>) = actualizar { estadoTrasBienvenida(habitos) }
+
     // --- Hábitos ---
 
     fun marcarHabito(habito: Habito, fecha: LocalDate = LocalDate.now()) = actualizar { e ->
@@ -63,7 +65,7 @@ object Repo {
             e.copy(
                 marcas = e.marcas + Marca(habito.id, dia),
                 puntos = e.puntos + Puntos.HABITO,
-                retos = avanzarRetos(e.retos, "hábito")
+                retos = avanzarRetos(e.retos, "habito:" + habito.id)
             )
         }
     }
@@ -86,10 +88,41 @@ object Repo {
         )
     }
 
+    fun editarHabito(habito: Habito) = actualizar { e ->
+        e.copy(
+            habitos = e.habitos.map { if (it.id == habito.id) habito else it },
+            enEspera = e.enEspera.map { if (it.id == habito.id) habito else it }
+        )
+    }
+
+    fun aEspera(habito: Habito) = actualizar { e ->
+        e.copy(
+            habitos = e.habitos.filterNot { it.id == habito.id },
+            enEspera = e.enEspera + habito.copy(activo = false)
+        )
+    }
+
+    fun agregarEjercicio(plantilla: String, ejercicio: Ejercicio) = actualizar { e ->
+        e.copy(plantillas = e.plantillas.map {
+            if (it.nombre == plantilla) it.copy(ejercicios = it.ejercicios + ejercicio) else it
+        })
+    }
+
+    fun borrarEjercicio(plantilla: String, nombre: String) = actualizar { e ->
+        e.copy(plantillas = e.plantillas.map {
+            if (it.nombre == plantilla) it.copy(ejercicios = it.ejercicios.filterNot { ej -> ej.nombre == nombre }) else it
+        })
+    }
+
+    fun borrarSesion(id: String) = actualizar { e ->
+        e.copy(sesiones = e.sesiones.filterNot { it.id == id })
+    }
+
     fun borrarHabito(habito: Habito) = actualizar { e ->
         e.copy(
             habitos = e.habitos.filterNot { it.id == habito.id },
-            enEspera = e.enEspera.filterNot { it.id == habito.id }
+            enEspera = e.enEspera.filterNot { it.id == habito.id },
+            marcas = e.marcas.filterNot { it.habitoId == habito.id }
         )
     }
 
@@ -131,6 +164,10 @@ object Repo {
 
     fun agregarTema(tema: Tema) = actualizar { e -> e.copy(temas = e.temas + tema) }
 
+    fun guardarApuntes(tema: Tema, apuntes: String) = actualizar { e ->
+        e.copy(temas = e.temas.map { if (it.id == tema.id) it.copy(apuntes = apuntes) else it })
+    }
+
     fun borrarTema(id: String) = actualizar { e -> e.copy(temas = e.temas.filterNot { it.id == id }) }
 
     fun calificarTema(tema: Tema, calidad: Int) = actualizar { e ->
@@ -144,13 +181,9 @@ object Repo {
 
     // --- Retos y recompensas ---
 
-    private fun avanzarRetos(retos: List<Reto>, tipo: String): List<Reto> = retos.map { reto ->
-        val aplica = when (tipo) {
-            "hábito" -> reto.titulo.contains("pantalla", true) || reto.titulo.contains("hábito", true)
-            "entreno" -> reto.titulo.contains("sesion", true) || reto.titulo.contains("sesión", true)
-            else -> reto.titulo.contains("repas", true)
-        }
-        if (!aplica || reto.completado) reto
+    /** Un reto avanza solo con el evento real al que está ligado. */
+    private fun avanzarRetos(retos: List<Reto>, objetivo: String): List<Reto> = retos.map { reto ->
+        if (reto.objetivo != objetivo || reto.completado) reto
         else {
             val progreso = reto.progreso + 1
             reto.copy(progreso = progreso, completado = progreso >= reto.meta)
@@ -226,10 +259,12 @@ object Repo {
                 JSONObject().put("id", it.id).put("nombre", it.nombre).put("materia", it.materia)
                     .put("intervalo", it.intervalo).put("facilidad", it.facilidad.toDouble())
                     .put("proximo", it.proximo).put("repasos", it.repasos)
+                    .put("apuntes", it.apuntes)
             }))
             .put("retos", arr(e.retos.map {
                 JSONObject().put("id", it.id).put("titulo", it.titulo).put("meta", it.meta)
                     .put("progreso", it.progreso).put("completado", it.completado)
+                    .put("objetivo", it.objetivo)
             }))
             .put("recompensas", arr(e.recompensas.map {
                 JSONObject().put("id", it.id).put("titulo", it.titulo)
@@ -331,7 +366,8 @@ object Repo {
                     intervalo = it.optInt("intervalo"),
                     facilidad = it.optDouble("facilidad", 2.2).toFloat(),
                     proximo = it.optLong("proximo", LocalDate.now().toEpochDay()),
-                    repasos = it.optInt("repasos")
+                    repasos = it.optInt("repasos"),
+                    apuntes = it.optString("apuntes")
                 )
             } ?: emptyList(),
             retos = o.optJSONArray("retos")?.mapear {
@@ -340,7 +376,8 @@ object Repo {
                     titulo = it.optString("titulo"),
                     meta = it.optInt("meta", 1),
                     progreso = it.optInt("progreso"),
-                    completado = it.optBoolean("completado")
+                    completado = it.optBoolean("completado"),
+                    objetivo = it.optString("objetivo", "entreno")
                 )
             } ?: emptyList(),
             recompensas = o.optJSONArray("recompensas")?.mapear {

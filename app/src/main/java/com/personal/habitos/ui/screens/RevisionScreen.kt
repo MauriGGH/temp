@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -14,13 +15,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.personal.habitos.data.Revision
 import com.personal.habitos.data.Repo
+import com.personal.habitos.data.Revision
 import com.personal.habitos.data.inicioDeSemana
 import com.personal.habitos.data.sesionesEnSemana
 import com.personal.habitos.data.vecesEnSemana
 import com.personal.habitos.ui.components.GlassCard
+import com.personal.habitos.ui.components.GlassList
 import java.time.LocalDate
 
 @Composable
@@ -44,18 +47,6 @@ fun RevisionScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                estado.habitos.take(2).forEach { habito ->
-                    GlassCard(modifier = Modifier.weight(1f), spacing = 4.dp) {
-                        Text(
-                            "${vecesEnSemana(habito.id, estado.marcas)} veces",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                        Textito(habito.nombre)
-                    }
-                }
-            }
-
             GlassCard(modifier = Modifier.fillMaxWidth(), spacing = 4.dp) {
                 Text(
                     "${sesionesEnSemana(estado.sesiones)} entrenamientos",
@@ -64,10 +55,26 @@ fun RevisionScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
                 Textito("Se mide cuántas veces, no si fue perfecto.")
             }
 
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
-                Text("¿Qué tan automático se siente?", style = MaterialTheme.typography.titleMedium)
-                estado.habitos.forEach { habito ->
-                    Textito(habito.nombre)
+            if (estado.habitos.isEmpty()) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Textito("Sin hábitos activos todavía. Créalos para poder revisarlos aquí.")
+                }
+            }
+
+            estado.habitos.forEach { habito ->
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(habito.nombre, fontWeight = FontWeight.Bold)
+                        Text(
+                            "${vecesEnSemana(habito.id, estado.marcas)} veces",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Textito("¿Qué tan automático se siente?")
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         (1..5).forEach { valor ->
                             Chip(
@@ -92,17 +99,55 @@ fun RevisionScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
                 )
             }
 
-            BotonPrincipal(if (aviso) "Revisión guardada" else "Guardar revisión", Modifier.fillMaxWidth()) {
+            BotonPrincipal(
+                if (aviso) "Revisión guardada" else "Guardar revisión",
+                Modifier.fillMaxWidth()
+            ) {
                 Repo.guardarRevision(Revision(semana, automatismo, reflexion))
                 aviso = true
             }
 
             GlassCard(modifier = Modifier.fillMaxWidth()) {
                 if (listos && estado.enEspera.isNotEmpty()) {
-                    Text("Ya puedes agregar un hábito nuevo", style = MaterialTheme.typography.titleMedium)
-                    Textito("Tus hábitos actuales se sienten automáticos. Activa uno de la lista de espera.")
+                    Text(
+                        "Ya puedes agregar un hábito nuevo",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Textito("Tus hábitos actuales se sienten automáticos. Elige uno de la lista:")
+                    estado.enEspera.forEach { habito ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(habito.nombre)
+                            BotonTexto("Activar") { Repo.activarDesdeEspera(habito) }
+                        }
+                    }
+                } else if (listos) {
+                    Text("Vas bien", style = MaterialTheme.typography.titleMedium)
+                    Textito("Tus hábitos se sienten automáticos. Añade uno nuevo cuando quieras.")
                 } else {
                     Textito("Todavía no toca un hábito nuevo. Sigue con estos.")
+                }
+            }
+
+            if (estado.revisiones.size > 1) {
+                Text("Revisiones anteriores", style = MaterialTheme.typography.titleMedium)
+                GlassList(modifier = Modifier.fillMaxWidth()) {
+                    estado.revisiones.filter { it.semana != semana }
+                        .sortedByDescending { it.semana }
+                        .take(6)
+                        .forEachIndexed { indice, revision ->
+                            if (indice > 0) Separador()
+                            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                                Text(
+                                    "Semana del " + LocalDate.ofEpochDay(revision.semana),
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                if (revision.reflexion.isNotBlank()) Textito(revision.reflexion)
+                            }
+                        }
                 }
             }
         }

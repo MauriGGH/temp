@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -42,6 +43,7 @@ fun EstudioScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
     val pendientes = intercalar(temasDeHoy(estado.temas, hoy))
     var repasando by remember { mutableStateOf(false) }
     var creando by remember { mutableStateOf(false) }
+    var apuntando by remember { mutableStateOf<Tema?>(null) }
 
     if (repasando && pendientes.isNotEmpty()) {
         RepasoScreen(
@@ -108,6 +110,12 @@ fun EstudioScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
                             }
                         )
                         Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = "Apuntes de ${tema.nombre}",
+                            tint = LocalGlassColors.current.textMuted,
+                            modifier = Modifier.clickable { apuntando = tema }
+                        )
+                        Icon(
                             Icons.Filled.Delete,
                             contentDescription = "Borrar ${tema.nombre}",
                             tint = LocalGlassColors.current.textMuted,
@@ -122,6 +130,37 @@ fun EstudioScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
     if (creando) {
         DialogoTema { creando = false }
     }
+
+    val conApuntes = apuntando
+    if (conApuntes != null) {
+        DialogoApuntes(conApuntes) { apuntando = null }
+    }
+}
+
+@Composable
+private fun DialogoApuntes(tema: Tema, onCerrar: () -> Unit) {
+    var texto by remember { mutableStateOf(tema.apuntes) }
+
+    AlertDialog(
+        onDismissRequest = onCerrar,
+        title = { Text("Apuntes de ${tema.nombre}") },
+        text = {
+            OutlinedTextField(
+                value = texto,
+                onValueChange = { texto = it },
+                label = { Text("Lo que quieres recordar") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 5
+            )
+        },
+        confirmButton = {
+            BotonTexto("Guardar") {
+                Repo.guardarApuntes(tema, texto)
+                onCerrar()
+            }
+        },
+        dismissButton = { BotonTexto("Cancelar", onCerrar) }
+    )
 }
 
 @Composable
@@ -132,6 +171,7 @@ private fun RepasoScreen(
 ) {
     var indice by remember { mutableStateOf(0) }
     var respuesta by remember { mutableStateOf("") }
+    var verApuntes by remember { mutableStateOf(false) }
     val tema = temas.getOrNull(indice)
 
     if (tema == null) {
@@ -164,6 +204,15 @@ private fun RepasoScreen(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 4
                 )
+                if (tema.apuntes.isBlank()) {
+                    Textito("Este tema todavía no tiene apuntes guardados.")
+                } else if (verApuntes) {
+                    Separador()
+                    Textito("Tus apuntes")
+                    Text(tema.apuntes)
+                } else {
+                    BotonTexto("Ver mis apuntes") { verApuntes = true }
+                }
             }
 
             Text("¿Qué tanto lo recordaste?", style = MaterialTheme.typography.titleMedium)
@@ -173,6 +222,7 @@ private fun RepasoScreen(
                         Chip(texto, false, Modifier.fillMaxWidth()) {
                             Repo.calificarTema(tema, calidad)
                             respuesta = ""
+                            verApuntes = false
                             indice += 1
                             if (indice >= temas.size) onSalir()
                         }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -32,6 +33,7 @@ import com.personal.habitos.data.etapaFuerza
 import com.personal.habitos.data.fuerzaHabito
 import com.personal.habitos.data.hechoEn
 import com.personal.habitos.data.marcasDe
+import com.personal.habitos.data.vecesEnSemana
 import com.personal.habitos.ui.components.GlassCard
 import com.personal.habitos.ui.components.GlassList
 import com.personal.habitos.ui.theme.LocalGlassColors
@@ -42,6 +44,8 @@ private val diasCortos = listOf("L", "M", "M", "J", "V", "S", "D")
 fun HabitosScreen(contentPadding: PaddingValues) {
     val estado = Repo.estado
     var creando by remember { mutableStateOf(false) }
+    var editando by remember { mutableStateOf<Habito?>(null) }
+    var borrando by remember { mutableStateOf<Habito?>(null) }
 
     Pantalla(
         titulo = "Hábitos",
@@ -54,12 +58,38 @@ fun HabitosScreen(contentPadding: PaddingValues) {
         }
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            estado.habitos.forEach { habito ->
-                TarjetaHabito(habito)
+
+            if (estado.habitos.isEmpty()) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Text("Aún no tienes hábitos activos", style = MaterialTheme.typography.titleMedium)
+                    Textito("Empieza con uno pequeño. Puedes cambiarlo cuando quieras.")
+                    BotonPrincipal("Crear mi primer hábito", Modifier.fillMaxWidth()) { creando = true }
+                }
             }
 
-            if (estado.enEspera.isNotEmpty()) {
+            estado.habitos.forEach { habito ->
+                TarjetaHabito(
+                    habito = habito,
+                    onEditar = { editando = habito },
+                    onBorrar = { borrando = habito },
+                    onAEspera = { Repo.aEspera(habito) }
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text("Lista de espera", style = MaterialTheme.typography.titleMedium)
+                BotonTexto("Añadir") { creando = true }
+            }
+
+            if (estado.enEspera.isEmpty()) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Textito("Aquí esperan los hábitos que quieres agregar más adelante.")
+                }
+            } else {
                 GlassList(modifier = Modifier.fillMaxWidth()) {
                     estado.enEspera.forEachIndexed { indice, habito ->
                         if (indice > 0) Separador()
@@ -68,15 +98,24 @@ fun HabitosScreen(contentPadding: PaddingValues) {
                                 .fillMaxWidth()
                                 .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(habito.nombre, modifier = Modifier.weight(1f))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(habito.nombre, fontWeight = FontWeight.Bold)
+                                if (habito.ancla.isNotBlank()) Textito(habito.ancla)
+                            }
                             BotonTexto("Activar") { Repo.activarDesdeEspera(habito) }
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = "Editar ${habito.nombre}",
+                                tint = LocalGlassColors.current.textMuted,
+                                modifier = Modifier.clickable { editando = habito }
+                            )
                             Icon(
                                 Icons.Filled.Delete,
                                 contentDescription = "Borrar ${habito.nombre}",
                                 tint = LocalGlassColors.current.textMuted,
-                                modifier = Modifier.clickable { Repo.borrarHabito(habito) }
+                                modifier = Modifier.clickable { borrando = habito }
                             )
                         }
                     }
@@ -87,15 +126,46 @@ fun HabitosScreen(contentPadding: PaddingValues) {
     }
 
     if (creando) {
-        DialogoNuevoHabito(
+        DialogoHabito(
+            inicial = null,
             puedeActivar = estado.habitos.size < 3,
             onCerrar = { creando = false }
+        )
+    }
+
+    val aEditar = editando
+    if (aEditar != null) {
+        DialogoHabito(
+            inicial = aEditar,
+            puedeActivar = true,
+            onCerrar = { editando = null }
+        )
+    }
+
+    val aBorrar = borrando
+    if (aBorrar != null) {
+        AlertDialog(
+            onDismissRequest = { borrando = null },
+            title = { Text("¿Borrar ${aBorrar.nombre}?") },
+            text = { Textito("También se borra su historial de marcas. Esto no se puede deshacer.") },
+            confirmButton = {
+                BotonTexto("Borrar") {
+                    Repo.borrarHabito(aBorrar)
+                    borrando = null
+                }
+            },
+            dismissButton = { BotonTexto("Cancelar") { borrando = null } }
         )
     }
 }
 
 @Composable
-private fun TarjetaHabito(habito: Habito) {
+private fun TarjetaHabito(
+    habito: Habito,
+    onEditar: () -> Unit,
+    onBorrar: () -> Unit,
+    onAEspera: () -> Unit
+) {
     val fuerza = fuerzaHabito(habito, Repo.marcasDe(habito))
     val glass = LocalGlassColors.current
 
@@ -116,27 +186,32 @@ private fun TarjetaHabito(habito: Habito) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(habito.nombre, fontWeight = FontWeight.Bold)
                 Textito(etapaFuerza(fuerza) + if (habito.ancla.isNotBlank()) " · ${habito.ancla}" else "")
+                Textito("${vecesEnSemana(habito.id, Repo.estado.marcas)} veces esta semana")
             }
+            Icon(
+                Icons.Filled.Edit,
+                contentDescription = "Editar ${habito.nombre}",
+                tint = glass.textMuted,
+                modifier = Modifier.clickable { onEditar() }
+            )
             Icon(
                 Icons.Filled.Delete,
                 contentDescription = "Borrar ${habito.nombre}",
                 tint = glass.textMuted,
-                modifier = Modifier.clickable { Repo.borrarHabito(habito) }
+                modifier = Modifier.clickable { onBorrar() }
             )
         }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             (1..7).forEach { dia ->
                 val aplica = habito.dias.contains(dia)
+                val hecho = Repo.hechoEn(habito, dia)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val hecho = Repo.hechoEn(habito, dia)
                     Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .then(Modifier)
-                            .padding(2.dp),
+                        modifier = Modifier.size(26.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
@@ -151,19 +226,25 @@ private fun TarjetaHabito(habito: Habito) {
                 }
             }
         }
+
+        BotonTexto("Pausar y mandar a la lista") { onAEspera() }
     }
 }
 
 @Composable
-private fun DialogoNuevoHabito(puedeActivar: Boolean, onCerrar: () -> Unit) {
-    var nombre by remember { mutableStateOf("") }
-    var ancla by remember { mutableStateOf("") }
-    var dias by remember { mutableStateOf(setOf(1, 2, 3, 4, 5, 6, 7)) }
+private fun DialogoHabito(
+    inicial: Habito?,
+    puedeActivar: Boolean,
+    onCerrar: () -> Unit
+) {
+    var nombre by remember { mutableStateOf(inicial?.nombre ?: "") }
+    var ancla by remember { mutableStateOf(inicial?.ancla ?: "") }
+    var dias by remember { mutableStateOf(inicial?.dias ?: setOf(1, 2, 3, 4, 5, 6, 7)) }
     var activar by remember { mutableStateOf(puedeActivar) }
 
     AlertDialog(
         onDismissRequest = onCerrar,
-        title = { Text("Nuevo hábito") },
+        title = { Text(if (inicial == null) "Nuevo hábito" else "Editar hábito") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Campo(nombre, "Nombre") { nombre = it }
@@ -179,26 +260,39 @@ private fun DialogoNuevoHabito(puedeActivar: Boolean, onCerrar: () -> Unit) {
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Chip("Activo ahora", activar && puedeActivar, Modifier.weight(1f)) {
-                        activar = puedeActivar
+                if (inicial == null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Chip("Activo ahora", activar && puedeActivar, Modifier.weight(1f)) {
+                            activar = puedeActivar
+                        }
+                        Chip("A la lista", !activar || !puedeActivar, Modifier.weight(1f)) {
+                            activar = false
+                        }
                     }
-                    Chip("A la lista", !activar || !puedeActivar, Modifier.weight(1f)) {
-                        activar = false
+                    if (!puedeActivar) {
+                        Textito("Ya tienes tres hábitos activos. Este entra a la lista de espera.")
                     }
-                }
-                if (!puedeActivar) {
-                    Textito("Ya tienes tres hábitos activos. Este entra a la lista de espera.")
                 }
             }
         },
         confirmButton = {
             BotonTexto("Guardar") {
                 if (nombre.isNotBlank()) {
-                    Repo.agregarHabito(
-                        Habito(nombre = nombre.trim(), ancla = ancla.trim(), dias = dias),
-                        activar && puedeActivar
-                    )
+                    val diasFinales = dias.ifEmpty { setOf(1, 2, 3, 4, 5, 6, 7) }
+                    if (inicial == null) {
+                        Repo.agregarHabito(
+                            Habito(nombre = nombre.trim(), ancla = ancla.trim(), dias = diasFinales),
+                            activar && puedeActivar
+                        )
+                    } else {
+                        Repo.editarHabito(
+                            inicial.copy(
+                                nombre = nombre.trim(),
+                                ancla = ancla.trim(),
+                                dias = diasFinales
+                            )
+                        )
+                    }
                 }
                 onCerrar()
             }

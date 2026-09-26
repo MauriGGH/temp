@@ -22,7 +22,13 @@ val AppTypography = Typography(
     headlineSmall = TextStyle(
         fontFamily = appFontFamily,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 22.sp
+        fontSize = 22.sp,
+        letterSpacing = (-0.2).sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = appFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 19.sp
     ),
     titleMedium = TextStyle(
         fontFamily = appFontFamily,
@@ -47,6 +53,7 @@ val AppTypography = Typography(
     labelSmall = TextStyle(
         fontFamily = appFontFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 12.sp
+        fontSize = 12.sp,
+        letterSpacing = 0.3.sp
     )
 )

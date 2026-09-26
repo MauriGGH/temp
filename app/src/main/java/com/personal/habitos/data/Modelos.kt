@@ -59,7 +59,8 @@ data class Tema(
     val intervalo: Int = 0,
     val facilidad: Float = 2.2f,
     val proximo: Long,
-    val repasos: Int = 0
+    val repasos: Int = 0,
+    val apuntes: String = ""
 )
 
 data class Reto(
@@ -67,7 +68,9 @@ data class Reto(
     val titulo: String,
     val meta: Int,
     val progreso: Int = 0,
-    val completado: Boolean = false
+    val completado: Boolean = false,
+    /** "entreno", "repaso" o "habito:<id>". Decide qué evento lo avanza. */
+    val objetivo: String = "entreno"
 )
 
 data class Recompensa(
@@ -127,40 +130,15 @@ fun plantillasPorDefecto(): List<Plantilla> = listOf(
     )
 )
 
-fun estadoInicial(): Estado {
-    val hoy = LocalDate.now().toEpochDay()
-    return Estado(
-        habitos = listOf(
-            Habito(nombre = "Comer sin pantalla", ancla = "En cada comida en casa"),
-            Habito(
-                nombre = "Entrenamiento",
-                ancla = "Después de lavarme los dientes",
-                dias = setOf(1, 3, 5)
-            )
-        ),
-        enEspera = listOf(
-            Habito(nombre = "Preparar comida para la escuela", activo = false),
-            Habito(nombre = "Practicar instrumento", activo = false),
-            Habito(nombre = "Clase de francés", activo = false)
-        ),
-        bloques = listOf(
-            Bloque(dia = 1, periodo = "Mañana", titulo = "Entrenar", tipo = "entreno"),
-            Bloque(dia = 1, periodo = "Mañana", titulo = "Desayuno sin pantalla", tipo = "habito"),
-            Bloque(dia = 1, periodo = "Tarde", titulo = "Escuela", tipo = "escuela"),
-            Bloque(dia = 1, periodo = "Noche", titulo = "Tiempo libre", tipo = "libre")
-        ),
-        recompensas = listOf(
-            Recompensa(titulo = "Cuerdas nuevas", condicion = "Al completar 3 retos"),
-            Recompensa(titulo = "Salida con amigos", condicion = "Al terminar el mes")
-        ),
-        retos = listOf(
-            Reto(titulo = "Comer sin pantalla 4 veces esta semana", meta = 4),
-            Reto(titulo = "Dos sesiones esta semana", meta = 2)
-        ),
-        temas = listOf(
-            Tema(nombre = "Derivadas parciales", materia = "Cálculo", proximo = hoy),
-            Tema(nombre = "Estructuras de datos", materia = "Programación", proximo = hoy)
-        ),
-        iniciado = true
-    )
-}
+fun estadoInicial(): Estado = Estado(iniciado = false)
+
+/** Se llama al terminar la bienvenida, con los hábitos que el usuario escribió. */
+fun estadoTrasBienvenida(habitos: List<Habito>): Estado = Estado(
+    habitos = habitos,
+    bloques = listOf(
+        Bloque(dia = 1, periodo = "Mañana", titulo = "Entrenar", tipo = "entreno"),
+        Bloque(dia = 1, periodo = "Tarde", titulo = "Escuela", tipo = "escuela"),
+        Bloque(dia = 1, periodo = "Noche", titulo = "Tiempo libre", tipo = "libre")
+    ),
+    iniciado = true
+)

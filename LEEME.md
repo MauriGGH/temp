@@ -56,9 +56,15 @@ En la fase 7 esto se elige desde Ajustes y se guarda en DataStore.
 
 Todo se guarda en el teléfono (SharedPreferences con JSON). Sin cuentas, sin internet.
 
-## Pendiente para más adelante
+## Plan de fases
 
-- Recordatorios con WorkManager.
-- Escribir los bloques y repasos en el calendario del teléfono.
-- Tipografía Plus Jakarta Sans.
-- Variantes de la mascota por rango.
+1. Primer uso y estados vacíos. **Hecho.**
+2. Hoy completo: bloques del día y accesos a Notas y Ajustes. **Hecho.**
+3. Hábitos: editar, añadir a la lista de espera, confirmar antes de borrar. **Hecho.**
+4. Entreno: editar los ejercicios de A y B, historial detallado. **Hecho.**
+5. Agenda con fechas reales, íconos por tipo y tiempo libre destacado. **Hecho.**
+6. Revisión semanal con todos los hábitos y desbloqueo real. **Hecho.**
+7. Retos: progreso ligado a eventos reales y mascota por rango. **Hecho.**
+8. Estudio: apuntes guardados por tema. **Hecho.**
+9. Recordatorios (WorkManager) y calendario del teléfono.
+10. Pulido: sombras, transiciones e ícono **hechos**; falta la tipografía Plus Jakarta Sans y una pasada de accesibilidad.

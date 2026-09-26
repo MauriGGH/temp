@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -79,6 +80,12 @@ fun GlassCard(
 
     Column(
         modifier = modifier
+            .shadow(
+                elevation = if (glass.isDark) 0.dp else 10.dp,
+                shape = shape,
+                spotColor = Color(0x40283050),
+                ambientColor = Color(0x30283050)
+            )
             .clip(shape)
             .background(if (strong) glass.glassStrong else glass.glass)
             .border(1.dp, glass.glassBorder, shape)

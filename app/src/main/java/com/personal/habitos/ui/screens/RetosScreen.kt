@@ -73,7 +73,7 @@ fun RetosScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Mascota(color = MaterialTheme.colorScheme.primary)
+                    Mascota(color = MaterialTheme.colorScheme.primary, rango = rango.nombre)
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             "Nivel ${nivelDe(estado.puntos)}",
@@ -130,9 +130,24 @@ fun RetosScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
                 }
             }
 
+            if (estado.retos.isEmpty()) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Textito("Sin retos activos. Crea uno de proceso, por ejemplo: comer sin pantalla 4 veces esta semana.")
+                }
+            }
+
             estado.retos.forEach { reto ->
                 GlassCard(modifier = Modifier.fillMaxWidth(), spacing = 10.dp) {
                     Text(reto.titulo, fontWeight = FontWeight.Bold)
+                    Textito(
+                        when {
+                            reto.objetivo == "entreno" -> "Avanza al entrenar"
+                            reto.objetivo == "repaso" -> "Avanza al repasar"
+                            else -> "Avanza con: " + (estado.habitos.firstOrNull {
+                                "habito:" + it.id == reto.objetivo
+                            }?.nombre ?: "un hábito borrado")
+                        }
+                    )
                     LinearProgressIndicator(
                         progress = { (reto.progreso.toFloat() / reto.meta).coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth(),
@@ -158,6 +173,12 @@ fun RetosScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
                 Text("Mis recompensas", style = MaterialTheme.typography.titleMedium)
                 BotonRedondo(onClick = { creandoRecompensa = true }, descripcion = "Nueva recompensa") {
                     Icon(Icons.Filled.Add, contentDescription = null)
+                }
+            }
+
+            if (estado.recompensas.isEmpty()) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Textito("Aún no defines recompensas. Elige algo que te guste y que no sea comida.")
                 }
             }
 
@@ -192,12 +213,23 @@ fun RetosScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
     }
 }
 
-/** Mascota original, dibujada con formas simples. */
+/** Mascota original. Cambia de detalle según el rango alcanzado. */
 @Composable
-private fun Mascota(color: Color) {
+private fun Mascota(color: Color, rango: String) {
+    val acento = colorRango(rango)
     Canvas(modifier = Modifier.size(84.dp)) {
         val ancho = size.width
         val alto = size.height
+
+        // Aura: aparece de Diamante en adelante.
+        if (rango in listOf("Diamante", "Ascendente", "Inmortal", "Radiante")) {
+            drawCircle(
+                color = acento.copy(alpha = 0.18f),
+                radius = ancho * 0.48f,
+                center = Offset(ancho / 2f, alto / 2f)
+            )
+        }
+
         drawOval(
             color = color,
             topLeft = Offset(ancho * 0.18f, alto * 0.12f),
@@ -214,6 +246,34 @@ private fun Mascota(color: Color) {
         drawCircle(color = Color(0xFF1C1F2A), radius = ancho * 0.055f, center = Offset(ancho * 0.61f, alto * 0.45f))
         drawCircle(color = Color.White, radius = ancho * 0.02f, center = Offset(ancho * 0.41f, alto * 0.43f))
         drawCircle(color = Color.White, radius = ancho * 0.02f, center = Offset(ancho * 0.63f, alto * 0.43f))
+
+        // Corona: de Oro en adelante.
+        if (rango != "Plata") {
+            drawPath(
+                path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(ancho * 0.34f, alto * 0.16f)
+                    lineTo(ancho * 0.42f, alto * 0.04f)
+                    lineTo(ancho * 0.5f, alto * 0.14f)
+                    lineTo(ancho * 0.58f, alto * 0.04f)
+                    lineTo(ancho * 0.66f, alto * 0.16f)
+                    close()
+                },
+                color = acento
+            )
+        }
+
+        // Destellos: solo Radiante.
+        if (rango == "Radiante") {
+            repeat(6) { i ->
+                rotate(i * 60f, Offset(ancho / 2f, alto / 2f)) {
+                    drawRect(
+                        color = acento.copy(alpha = 0.5f),
+                        topLeft = Offset(ancho * 0.49f, 0f),
+                        size = Size(ancho * 0.02f, alto * 0.08f)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -281,8 +341,10 @@ private fun Insignia(nombre: String, activo: Boolean) {
 
 @Composable
 private fun DialogoReto(onCerrar: () -> Unit) {
+    val habitos = Repo.estado.habitos
     var titulo by remember { mutableStateOf("") }
     var meta by remember { mutableStateOf("4") }
+    var objetivo by remember { mutableStateOf(habitos.firstOrNull()?.let { "habito:" + it.id } ?: "entreno") }
 
     AlertDialog(
         onDismissRequest = onCerrar,
@@ -290,15 +352,28 @@ private fun DialogoReto(onCerrar: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Campo(titulo, "Reto (de proceso)") { titulo = it }
-                Campo(meta, "Meta (veces)") { texto -> meta = texto.filter { it.isDigit() } }
-                Textito("Ejemplo: comer sin pantalla 4 veces esta semana.")
+                Campo(meta, "Meta (veces)") { texto -> meta = texto.filter { c -> c.isDigit() } }
+                Textito("¿Qué lo hace avanzar?")
+                habitos.forEach { habito ->
+                    Chip(
+                        habito.nombre,
+                        objetivo == "habito:" + habito.id,
+                        Modifier.fillMaxWidth()
+                    ) { objetivo = "habito:" + habito.id }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Chip("Entrenar", objetivo == "entreno", Modifier.weight(1f)) { objetivo = "entreno" }
+                    Chip("Repasar", objetivo == "repaso", Modifier.weight(1f)) { objetivo = "repaso" }
+                }
             }
         },
         confirmButton = {
             BotonTexto("Guardar") {
-                val objetivo = meta.toIntOrNull() ?: 1
+                val objetivoMeta = meta.toIntOrNull() ?: 1
                 if (titulo.isNotBlank()) {
-                    Repo.agregarReto(Reto(titulo = titulo.trim(), meta = objetivo))
+                    Repo.agregarReto(
+                        Reto(titulo = titulo.trim(), meta = objetivoMeta, objetivo = objetivo)
+                    )
                 }
                 onCerrar()
             }

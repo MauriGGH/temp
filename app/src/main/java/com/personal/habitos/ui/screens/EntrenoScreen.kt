@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,42 +37,51 @@ import java.time.LocalDate
 @Composable
 fun EntrenoScreen(contentPadding: PaddingValues) {
     val estado = Repo.estado
-    var sesion by remember { mutableStateOf(siguienteSesion(estado.sesiones)) }
+    val toca = siguienteSesion(estado.sesiones)
+    var sesion by remember { mutableStateOf(toca) }
     var hechos by remember { mutableStateOf(setOf<String>()) }
     var esfuerzo by remember { mutableStateOf(mapOf<String, String>()) }
     var nota by remember { mutableStateOf("") }
     var guardada by remember { mutableStateOf(false) }
+    var editando by remember { mutableStateOf(false) }
+    var abierta by remember { mutableStateOf<String?>(null) }
 
     val plantilla = estado.plantillas.firstOrNull { it.nombre == sesion }
-    val ultima = estado.sesiones.maxByOrNull { it.fecha }
+    val ultimaDeEsta = estado.sesiones.filter { it.sesion == sesion }.maxByOrNull { it.fecha }
 
     Pantalla(
         titulo = "Entreno",
         contentPadding = contentPadding,
-        subtitulo = "Te toca ${siguienteSesion(estado.sesiones)}. Primero lo pesado."
+        subtitulo = "Te toca $toca. Primero lo pesado; los extras al final.",
+        accion = {
+            BotonRedondo(onClick = { editando = true }, descripcion = "Añadir ejercicio") {
+                Icon(Icons.Filled.Add, contentDescription = null)
+            }
+        }
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("A", "B").forEach { nombre ->
+                estado.plantillas.forEach { p ->
                     Chip(
-                        texto = "Sesión $nombre",
-                        seleccionado = sesion == nombre,
+                        texto = "Sesión ${p.nombre}",
+                        seleccionado = sesion == p.nombre,
                         modifier = Modifier.weight(1f)
                     ) {
-                        sesion = nombre
+                        sesion = p.nombre
                         hechos = emptySet()
                         esfuerzo = emptyMap()
+                        guardada = false
                     }
                 }
             }
 
-            plantilla?.ejercicios?.forEach { ejercicio ->
+            plantilla?.ejercicios?.sortedBy { it.extra }?.forEach { ejercicio ->
                 TarjetaEjercicio(
                     ejercicio = ejercicio,
                     hecho = hechos.contains(ejercicio.nombre),
                     esfuerzoActual = esfuerzo[ejercicio.nombre],
-                    ultimoEsfuerzo = ultima?.esfuerzo?.get(ejercicio.nombre),
+                    ultimoEsfuerzo = ultimaDeEsta?.esfuerzo?.get(ejercicio.nombre),
                     onMarcar = {
                         hechos = if (hechos.contains(ejercicio.nombre)) {
                             hechos - ejercicio.nombre
@@ -80,7 +92,8 @@ fun EntrenoScreen(contentPadding: PaddingValues) {
                     onEsfuerzo = { valor ->
                         esfuerzo = esfuerzo + (ejercicio.nombre to valor)
                         hechos = hechos + ejercicio.nombre
-                    }
+                    },
+                    onBorrar = { Repo.borrarEjercicio(sesion, ejercicio.nombre) }
                 )
             }
 
@@ -101,33 +114,71 @@ fun EntrenoScreen(contentPadding: PaddingValues) {
                         )
                     )
                     guardada = true
+                    hechos = emptySet()
+                    esfuerzo = emptyMap()
+                    nota = ""
                 }
             }
+            if (!guardada && hechos.isEmpty()) {
+                Textito("Marca al menos un ejercicio para guardar la sesión.")
+            }
 
-            if (estado.sesiones.isNotEmpty()) {
-                Text("Historial", style = MaterialTheme.typography.titleMedium)
+            Text("Historial", style = MaterialTheme.typography.titleMedium)
+
+            if (estado.sesiones.isEmpty()) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Textito("Aquí aparecerán tus sesiones cuando registres la primera.")
+                }
+            } else {
                 GlassList(modifier = Modifier.fillMaxWidth()) {
-                    estado.sesiones.sortedByDescending { it.fecha }.take(6)
+                    estado.sesiones.sortedByDescending { it.fecha }.take(10)
                         .forEachIndexed { indice, registro ->
                             if (indice > 0) Separador()
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                    .clickable {
+                                        abierta = if (abierta == registro.id) null else registro.id
+                                    }
+                                    .padding(12.dp)
                             ) {
-                                Column {
-                                    Text("Sesión ${registro.sesion}", fontWeight = FontWeight.Bold)
-                                    Textito(
-                                        LocalDate.ofEpochDay(registro.fecha).toString() +
-                                            " · ${registro.ejerciciosHechos.size} ejercicios"
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Sesión ${registro.sesion}", fontWeight = FontWeight.Bold)
+                                        Textito(
+                                            LocalDate.ofEpochDay(registro.fecha).toString() +
+                                                " · ${registro.ejerciciosHechos.size} ejercicios"
+                                        )
+                                    }
+                                    Icon(
+                                        Icons.Filled.Delete,
+                                        contentDescription = "Borrar sesión",
+                                        tint = LocalGlassColors.current.textMuted,
+                                        modifier = Modifier.clickable { Repo.borrarSesion(registro.id) }
                                     )
+                                }
+                                if (abierta == registro.id) {
+                                    registro.ejerciciosHechos.forEach { nombre ->
+                                        Textito(
+                                            nombre + (registro.esfuerzo[nombre]?.let { " · $it" } ?: "")
+                                        )
+                                    }
+                                    if (registro.nota.isNotBlank()) Textito("Nota: ${registro.nota}")
                                 }
                             }
                         }
                 }
+                Textito("Toca una sesión para ver el detalle.")
             }
         }
+    }
+
+    if (editando) {
+        DialogoEjercicio(sesion = sesion) { editando = false }
     }
 }
 
@@ -138,7 +189,8 @@ private fun TarjetaEjercicio(
     esfuerzoActual: String?,
     ultimoEsfuerzo: String?,
     onMarcar: () -> Unit,
-    onEsfuerzo: (String) -> Unit
+    onEsfuerzo: (String) -> Unit,
+    onBorrar: () -> Unit
 ) {
     GlassCard(modifier = Modifier.fillMaxWidth(), spacing = 10.dp) {
         Row(
@@ -156,10 +208,21 @@ private fun TarjetaEjercicio(
             Column(modifier = Modifier.weight(1f)) {
                 Text(ejercicio.nombre, fontWeight = FontWeight.Bold)
                 Textito(
-                    if (ultimoEsfuerzo != null) "Última vez: $ultimoEsfuerzo"
-                    else ejercicio.categoria + if (ejercicio.extra) " · extra" else ""
+                    buildString {
+                        append(ejercicio.categoria)
+                        if (ejercicio.extra) append(" · extra")
+                        if (ultimoEsfuerzo != null) append(" · la última vez: $ultimoEsfuerzo")
+                    }
                 )
             }
+            Icon(
+                Icons.Filled.Delete,
+                contentDescription = "Quitar ${ejercicio.nombre}",
+                tint = LocalGlassColors.current.textMuted,
+                modifier = Modifier
+                    .size(20.dp)
+                    .clickable { onBorrar() }
+            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("Fácil", "Justo", "Difícil").forEach { valor ->
@@ -167,4 +230,47 @@ private fun TarjetaEjercicio(
             }
         }
     }
+}
+
+@Composable
+private fun DialogoEjercicio(sesion: String, onCerrar: () -> Unit) {
+    var nombre by remember { mutableStateOf("") }
+    var categoria by remember { mutableStateOf("Pierna") }
+    var extra by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onCerrar,
+        title = { Text("Añadir a la sesión $sesion") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Campo(nombre, "Ejercicio") { nombre = it }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("Pierna", "Empuje", "Jalón").forEach { opcion ->
+                        Chip(opcion, categoria == opcion, Modifier.weight(1f)) { categoria = opcion }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("Brazo", "Hombro", "Cierre").forEach { opcion ->
+                        Chip(opcion, categoria == opcion, Modifier.weight(1f)) { categoria = opcion }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Chip("Principal", !extra, Modifier.weight(1f)) { extra = false }
+                    Chip("Extra", extra, Modifier.weight(1f)) { extra = true }
+                }
+            }
+        },
+        confirmButton = {
+            BotonTexto("Guardar") {
+                if (nombre.isNotBlank()) {
+                    Repo.agregarEjercicio(
+                        sesion,
+                        Ejercicio(nombre.trim(), categoria, extra)
+                    )
+                }
+                onCerrar()
+            }
+        },
+        dismissButton = { BotonTexto("Cancelar", onCerrar) }
+    )
 }

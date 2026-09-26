@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -43,13 +46,19 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             NavHost(
                 navController = navController,
                 startDestination = Destino.Hoy.ruta,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = { fadeIn(tween(220)) },
+                exitTransition = { fadeOut(tween(160)) },
+                popEnterTransition = { fadeIn(tween(220)) },
+                popExitTransition = { fadeOut(tween(160)) }
             ) {
                 composable(Destino.Hoy.ruta) {
                     HoyScreen(
                         contentPadding = margenInferior,
                         irAEntreno = { navController.navigate(Destino.Entreno.ruta) },
-                        irAEstudio = { navController.navigate("estudio") }
+                        irAEstudio = { navController.navigate("estudio") },
+                        irANotas = { navController.navigate("notas") },
+                        irAAjustes = { navController.navigate("ajustes") }
                     )
                 }
                 composable(Destino.Habitos.ruta) { HabitosScreen(margenInferior) }

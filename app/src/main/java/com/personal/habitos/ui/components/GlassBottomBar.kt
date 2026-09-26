@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -42,6 +43,12 @@ fun GlassBottomBar(
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
             .height(72.dp)
+            .shadow(
+                elevation = if (glass.isDark) 0.dp else 14.dp,
+                shape = shape,
+                spotColor = Color(0x50283050),
+                ambientColor = Color(0x40283050)
+            )
             .clip(shape)
             .background(glass.glassStrong)
             .border(1.dp, glass.glassBorder, shape)
