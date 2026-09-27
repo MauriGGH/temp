@@ -22,8 +22,10 @@ import com.personal.habitos.data.Revision
 import com.personal.habitos.data.inicioDeSemana
 import com.personal.habitos.data.sesionesEnSemana
 import com.personal.habitos.data.vecesEnSemana
+import com.personal.habitos.ui.components.BarrasSemana
 import com.personal.habitos.ui.components.GlassCard
 import com.personal.habitos.ui.components.GlassList
+import com.personal.habitos.ui.components.Widget
 import java.time.LocalDate
 
 @Composable
@@ -47,13 +49,31 @@ fun RevisionScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
-            GlassCard(modifier = Modifier.fillMaxWidth(), spacing = 4.dp) {
-                Text(
-                    "${sesionesEnSemana(estado.sesiones)} entrenamientos",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Textito("Se mide cuántas veces, no si fue perfecto.")
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("ENTRENOS")
+                    Text(
+                        "${sesionesEnSemana(estado.sesiones)}",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Textito("esta semana")
+                }
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("MARCAS")
+                    Text(
+                        "${estado.habitos.sumOf { vecesEnSemana(it.id, estado.marcas) }}",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Textito("de hábitos")
+                }
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("PUNTOS")
+                    Text("${estado.puntos}", style = MaterialTheme.typography.headlineSmall)
+                    Textito("en total")
+                }
             }
+
+            Textito("Se mide cuántas veces, no si fue perfecto.")
 
             if (estado.habitos.isEmpty()) {
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
@@ -89,7 +109,22 @@ fun RevisionScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
                 }
             }
 
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+            val semanas = (5 downTo 0).map { atras ->
+                val inicio = LocalDate.ofEpochDay(semana).minusWeeks(atras.toLong()).toEpochDay()
+                val fin = inicio + 7
+                estado.marcas.count { it.fecha in inicio until fin }.toFloat() +
+                    estado.sesiones.count { it.fecha in inicio until fin }.toFloat()
+            }
+
+            Widget(titulo = "Últimas semanas", modifier = Modifier.fillMaxWidth()) {
+                BarrasSemana(
+                    valores = semanas,
+                    etiquetas = listOf("-5", "-4", "-3", "-2", "-1", "Hoy")
+                )
+                Textito("Marcas de hábitos y entrenamientos por semana.")
+            }
+
+            Widget(titulo = "Tu reflexión", modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = reflexion,
                     onValueChange = { reflexion = it },

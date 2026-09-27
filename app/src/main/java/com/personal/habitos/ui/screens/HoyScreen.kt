@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -42,7 +41,6 @@ import com.personal.habitos.ui.components.InsigniaRango
 import com.personal.habitos.ui.components.Widget
 import com.personal.habitos.ui.theme.LocalGlassColors
 import java.time.LocalDate
-import java.time.format.TextStyle as EstiloTexto
 import java.util.Locale
 
 private val etiquetasDias = listOf("L", "M", "M", "J", "V", "S", "D")
@@ -94,6 +92,13 @@ fun HoyScreen(
         }
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+            // Tira de cifras, al estilo panel
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Cifra("Racha activa", "${estado.marcas.size}", "marcas", Modifier.weight(1f))
+                Cifra("Puntos", "${estado.puntos}", "acumulados", Modifier.weight(1f))
+                Cifra("Entrenos", "${estado.sesiones.size}", "en total", Modifier.weight(1f))
+            }
 
             // Fila de dos widgets: progreso del día y rango
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -202,6 +207,25 @@ fun HoyScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun Cifra(titulo: String, valor: String, pie: String, modifier: Modifier = Modifier) {
+    GlassCard(modifier = modifier, contentPadding = 14.dp, spacing = 2.dp) {
+        Text(
+            titulo.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = LocalGlassColors.current.textMuted,
+            maxLines = 1
+        )
+        Text(valor, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            pie,
+            style = MaterialTheme.typography.labelSmall,
+            color = LocalGlassColors.current.textMuted,
+            maxLines = 1
+        )
     }
 }
 

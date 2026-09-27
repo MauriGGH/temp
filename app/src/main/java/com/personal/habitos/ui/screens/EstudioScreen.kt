@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +34,7 @@ import com.personal.habitos.data.intervaloPrevisto
 import com.personal.habitos.data.temasDeHoy
 import com.personal.habitos.ui.components.GlassCard
 import com.personal.habitos.ui.components.GlassList
+import com.personal.habitos.ui.components.Widget
 import com.personal.habitos.ui.theme.LocalGlassColors
 import java.time.LocalDate
 
@@ -44,6 +46,15 @@ fun EstudioScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
     var repasando by remember { mutableStateOf(false) }
     var creando by remember { mutableStateOf(false) }
     var apuntando by remember { mutableStateOf<Tema?>(null) }
+    var segundos by remember { mutableStateOf(0) }
+    var corriendo by remember { mutableStateOf(false) }
+
+    LaunchedEffect(corriendo) {
+        while (corriendo) {
+            kotlinx.coroutines.delay(1000)
+            segundos += 1
+        }
+    }
 
     if (repasando && pendientes.isNotEmpty()) {
         RepasoScreen(
@@ -67,8 +78,31 @@ fun EstudioScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
-                Textito("Hoy toca repasar")
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("TEMAS")
+                    Text("${estado.temas.size}", style = MaterialTheme.typography.headlineSmall)
+                    Textito("en total")
+                }
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("REPASOS")
+                    Text(
+                        "${estado.temas.sumOf { it.repasos }}",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Textito("acumulados")
+                }
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("MATERIAS")
+                    Text(
+                        "${estado.temas.map { it.materia }.distinct().size}",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Textito("distintas")
+                }
+            }
+
+            Widget(titulo = "Hoy toca repasar", modifier = Modifier.fillMaxWidth()) {
                 Text(
                     "${pendientes.size} ${if (pendientes.size == 1) "tema" else "temas"}",
                     style = MaterialTheme.typography.headlineSmall
@@ -83,6 +117,23 @@ fun EstudioScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
                 } else {
                     Textito("Nada pendiente. Los temas vuelven solos cuando toca.")
                 }
+            }
+
+            Widget(titulo = "Cronómetro de estudio", modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "%d:%02d:%02d".format(segundos / 3600, (segundos % 3600) / 60, segundos % 60),
+                    style = MaterialTheme.typography.displaySmall
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Chip(if (corriendo) "Pausar" else "Empezar", corriendo, Modifier.weight(1f)) {
+                        corriendo = !corriendo
+                    }
+                    Chip("Reiniciar", false, Modifier.weight(1f)) {
+                        corriendo = false
+                        segundos = 0
+                    }
+                }
+                Textito("Estudia en bloques y descansa entre ellos; el descanso también consolida.")
             }
 
             Text("Mis temas", style = MaterialTheme.typography.titleMedium)

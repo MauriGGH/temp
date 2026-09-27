@@ -56,15 +56,21 @@ En la fase 7 esto se elige desde Ajustes y se guarda en DataStore.
 
 Todo se guarda en el teléfono (SharedPreferences con JSON). Sin cuentas, sin internet.
 
-## Plan de fases
+## Plan de fases (v2)
 
-1. Primer uso y estados vacíos. **Hecho.**
-2. Hoy completo: bloques del día y accesos a Notas y Ajustes. **Hecho.**
-3. Hábitos: editar, añadir a la lista de espera, confirmar antes de borrar. **Hecho.**
-4. Entreno: editar los ejercicios de A y B, historial detallado. **Hecho.**
-5. Agenda con fechas reales, íconos por tipo y tiempo libre destacado. **Hecho.**
-6. Revisión semanal con todos los hábitos y desbloqueo real. **Hecho.**
-7. Retos: progreso ligado a eventos reales y mascota por rango. **Hecho.**
-8. Estudio: apuntes guardados por tema. **Hecho.**
-9. Recordatorios (WorkManager) y calendario del teléfono.
-10. Pulido: sombras, transiciones e ícono **hechos**; falta la tipografía Plus Jakarta Sans y una pasada de accesibilidad.
+A. Estilo unificado en todas las pantallas. **Hecho.**
+B. Recordatorios con WorkManager y notificaciones.
+C. Calendario del teléfono (CalendarContract) para bloques y repasos.
+D. Herramientas por sección: temporizador de estudio, presupuesto por categoría,
+   duplicar días en Agenda, gráfica de semanas en Revisión.
+E. Reordenar arrastrando y editar sesiones guardadas.
+F. Tipografía Plus Jakarta Sans y pulido final.
+G. Ranking en línea (requiere servidor).
+
+## Ya funcionando
+
+Bienvenida, Hoy (widgets, anillo, gráfica semanal, cifras), Hábitos (fuerza, días,
+lista de espera), Entreno (temporizador de descanso automático, cronómetro de sesión,
+series con peso y reps, progresión, historial), Retos (guardián, rangos con emblemas,
+puntos), Estudio (repetición espaciada, apuntes), Finanzas, Agenda, Revisión semanal,
+Notas y Ajustes (acento, tema, respaldo JSON).

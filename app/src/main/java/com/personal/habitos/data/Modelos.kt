@@ -1,6 +1,5 @@
 package com.personal.habitos.data
 
-import java.time.LocalDate
 import java.util.UUID
 
 fun nuevoId(): String = UUID.randomUUID().toString()
@@ -15,7 +14,16 @@ data class Habito(
 
 data class Marca(val habitoId: String, val fecha: Long)
 
-data class Ejercicio(val nombre: String, val categoria: String, val extra: Boolean = false)
+data class Ejercicio(
+    val nombre: String,
+    val categoria: String,
+    val extra: Boolean = false,
+    /** Segundos de descanso sugeridos entre series. */
+    val descanso: Int = 90
+)
+
+/** Una serie registrada: peso y repeticiones tal como los escribiste. */
+data class Serie(val ejercicio: String, val peso: String, val reps: String)
 
 data class Plantilla(val nombre: String, val ejercicios: List<Ejercicio>)
 
@@ -25,6 +33,8 @@ data class RegistroSesion(
     val sesion: String,
     val ejerciciosHechos: List<String> = emptyList(),
     val esfuerzo: Map<String, String> = emptyMap(),
+    val series: List<Serie> = emptyList(),
+    val duracion: Int = 0,
     val nota: String = ""
 )
 
@@ -100,6 +110,12 @@ data class Estado(
     val recompensas: List<Recompensa> = emptyList(),
     val revisiones: List<Revision> = emptyList(),
     val puntos: Int = 0,
+    /** "entreno", "revision", "bloques" -> encendido */
+    val recordatorios: Map<String, Boolean> = mapOf("entreno" to true, "revision" to true),
+    /** misma clave -> hora del día (0-23) */
+    val horas: Map<String, Int> = mapOf("entreno" to 8, "revision" to 18),
+    /** categoría de gasto -> tope mensual */
+    val presupuestos: Map<String, Double> = emptyMap(),
     val acento: Int = 0,
     val modoTema: Int = 0,
     val iniciado: Boolean = false
@@ -109,23 +125,23 @@ fun plantillasPorDefecto(): List<Plantilla> = listOf(
     Plantilla(
         "A",
         listOf(
-            Ejercicio("Sentadilla goblet", "Pierna"),
-            Ejercicio("Flexiones", "Empuje"),
-            Ejercicio("Remo a una mano", "Jalón"),
-            Ejercicio("Peso muerto rumano", "Pierna"),
-            Ejercicio("Elevaciones laterales", "Hombro", extra = true),
-            Ejercicio("Box", "Cierre", extra = true)
+            Ejercicio("Sentadilla goblet", "Pierna", descanso = 120),
+            Ejercicio("Flexiones", "Empuje", descanso = 90),
+            Ejercicio("Remo a una mano", "Jalón", descanso = 90),
+            Ejercicio("Peso muerto rumano", "Pierna", descanso = 120),
+            Ejercicio("Elevaciones laterales", "Hombro", extra = true, descanso = 60),
+            Ejercicio("Box", "Cierre", extra = true, descanso = 60)
         )
     ),
     Plantilla(
         "B",
         listOf(
-            Ejercicio("Sentadilla búlgara", "Pierna"),
-            Ejercicio("Press militar", "Empuje"),
-            Ejercicio("Remo inclinado", "Jalón"),
-            Ejercicio("Peso muerto sumo", "Pierna"),
-            Ejercicio("Curl y tríceps", "Brazo", extra = true),
-            Ejercicio("Box", "Cierre", extra = true)
+            Ejercicio("Sentadilla búlgara", "Pierna", descanso = 120),
+            Ejercicio("Press militar", "Empuje", descanso = 90),
+            Ejercicio("Remo inclinado", "Jalón", descanso = 90),
+            Ejercicio("Peso muerto sumo", "Pierna", descanso = 120),
+            Ejercicio("Curl y tríceps", "Brazo", extra = true, descanso = 60),
+            Ejercicio("Box", "Cierre", extra = true, descanso = 60)
         )
     )
 )

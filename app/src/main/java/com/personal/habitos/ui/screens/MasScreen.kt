@@ -40,7 +40,7 @@ fun MasScreen(
 
             GlassList(modifier = Modifier.fillMaxWidth()) {
                 val opciones = listOf(
-                    "retos" to "Retos y recompensas",
+                    "finanzas" to "Finanzas",
                     "estudio" to "Estudio",
                     "agenda" to "Agenda",
                     "revision" to "Revisión semanal",

@@ -4,9 +4,9 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import java.time.LocalDate
 import org.json.JSONArray
 import org.json.JSONObject
-import java.time.LocalDate
 
 /**
  * Guarda todo en el teléfono, en un JSON dentro de SharedPreferences.
@@ -150,6 +150,14 @@ object Repo {
 
     fun agregarBloque(bloque: Bloque) = actualizar { e -> e.copy(bloques = e.bloques + bloque) }
 
+    fun duplicarDia(origen: Int, destinos: List<Int>) = actualizar { e ->
+        val base = e.bloques.filter { it.dia == origen }
+        val nuevos = destinos.flatMap { destino ->
+            base.map { it.copy(id = nuevoId(), dia = destino) }
+        }
+        e.copy(bloques = e.bloques.filterNot { it.dia in destinos } + nuevos)
+    }
+
     fun borrarBloque(id: String) = actualizar { e ->
         e.copy(bloques = e.bloques.filterNot { it.id == id })
     }
@@ -212,6 +220,50 @@ object Repo {
 
     // --- Ajustes ---
 
+    fun cambiarRecordatorio(clave: String, activo: Boolean) = actualizar { e ->
+        e.copy(recordatorios = e.recordatorios + (clave to activo))
+    }
+
+    fun cambiarHora(clave: String, hora: Int) = actualizar { e ->
+        e.copy(horas = e.horas + (clave to hora))
+    }
+
+    fun cambiarPresupuesto(categoria: String, tope: Double) = actualizar { e ->
+        e.copy(presupuestos = e.presupuestos + (categoria to tope))
+    }
+
+    fun borrarPresupuesto(categoria: String) = actualizar { e ->
+        e.copy(presupuestos = e.presupuestos - categoria)
+    }
+
+    fun moverHabito(habito: Habito, arriba: Boolean) = actualizar { e ->
+        val lista = e.habitos.toMutableList()
+        val i = lista.indexOfFirst { it.id == habito.id }
+        val j = if (arriba) i - 1 else i + 1
+        if (i >= 0 && j in lista.indices) {
+            val tmp = lista[i]; lista[i] = lista[j]; lista[j] = tmp
+        }
+        e.copy(habitos = lista)
+    }
+
+    fun moverEjercicio(plantilla: String, nombre: String, arriba: Boolean) = actualizar { e ->
+        e.copy(plantillas = e.plantillas.map { p ->
+            if (p.nombre != plantilla) p else {
+                val lista = p.ejercicios.toMutableList()
+                val i = lista.indexOfFirst { it.nombre == nombre }
+                val j = if (arriba) i - 1 else i + 1
+                if (i >= 0 && j in lista.indices) {
+                    val tmp = lista[i]; lista[i] = lista[j]; lista[j] = tmp
+                }
+                p.copy(ejercicios = lista)
+            }
+        })
+    }
+
+    fun editarNotaSesion(id: String, nota: String) = actualizar { e ->
+        e.copy(sesiones = e.sesiones.map { if (it.id == id) it.copy(nota = nota) else it })
+    }
+
     fun cambiarAcento(indice: Int) = actualizar { e -> e.copy(acento = indice) }
 
     fun cambiarModoTema(modo: Int) = actualizar { e -> e.copy(modoTema = modo) }
@@ -234,13 +286,18 @@ object Repo {
             .put("plantillas", arr(e.plantillas.map { p ->
                 JSONObject().put("nombre", p.nombre).put("ejercicios", arr(p.ejercicios.map { ej ->
                     JSONObject().put("nombre", ej.nombre).put("categoria", ej.categoria)
-                        .put("extra", ej.extra)
+                        .put("extra", ej.extra).put("descanso", ej.descanso)
                 }))
             }))
             .put("sesiones", arr(e.sesiones.map { s ->
                 JSONObject().put("id", s.id).put("fecha", s.fecha).put("sesion", s.sesion)
                     .put("hechos", JSONArray(s.ejerciciosHechos))
                     .put("esfuerzo", JSONObject(s.esfuerzo as Map<*, *>))
+                    .put("duracion", s.duracion)
+                    .put("series", arr(s.series.map { se ->
+                        JSONObject().put("ejercicio", se.ejercicio).put("peso", se.peso)
+                            .put("reps", se.reps)
+                    }))
                     .put("nota", s.nota)
             }))
             .put("movimientos", arr(e.movimientos.map {
@@ -276,6 +333,9 @@ object Repo {
                     .put("reflexion", it.reflexion)
             }))
             .put("puntos", e.puntos)
+            .put("recordatorios", JSONObject(e.recordatorios as Map<*, *>))
+            .put("horas", JSONObject(e.horas as Map<*, *>))
+            .put("presupuestos", JSONObject(e.presupuestos as Map<*, *>))
             .put("acento", e.acento)
             .put("modoTema", e.modoTema)
             .put("iniciado", e.iniciado)
@@ -293,6 +353,12 @@ object Repo {
 
     private fun JSONObject.mapaEntero(): Map<String, Int> =
         keys().asSequence().associateWith { getInt(it) }
+
+    private fun JSONObject.mapaBool(): Map<String, Boolean> =
+        keys().asSequence().associateWith { getBoolean(it) }
+
+    private fun JSONObject.mapaDoble(): Map<String, Double> =
+        keys().asSequence().associateWith { getDouble(it) }
 
     private fun leer(o: JSONObject): Estado {
         fun habito(j: JSONObject) = Habito(
@@ -316,7 +382,8 @@ object Repo {
                         Ejercicio(
                             ej.optString("nombre"),
                             ej.optString("categoria"),
-                            ej.optBoolean("extra")
+                            ej.optBoolean("extra"),
+                            ej.optInt("descanso", 90)
                         )
                     } ?: emptyList()
                 )
@@ -328,6 +395,10 @@ object Repo {
                     sesion = it.optString("sesion"),
                     ejerciciosHechos = it.optJSONArray("hechos")?.textos() ?: emptyList(),
                     esfuerzo = it.optJSONObject("esfuerzo")?.mapaTexto() ?: emptyMap(),
+                    series = it.optJSONArray("series")?.mapear { se ->
+                        Serie(se.optString("ejercicio"), se.optString("peso"), se.optString("reps"))
+                    } ?: emptyList(),
+                    duracion = it.optInt("duracion"),
                     nota = it.optString("nota")
                 )
             } ?: emptyList(),
@@ -396,6 +467,10 @@ object Repo {
                 )
             } ?: emptyList(),
             puntos = o.optInt("puntos"),
+            recordatorios = o.optJSONObject("recordatorios")?.mapaBool()
+                ?: mapOf("entreno" to true, "revision" to true),
+            horas = o.optJSONObject("horas")?.mapaEntero() ?: mapOf("entreno" to 8, "revision" to 18),
+            presupuestos = o.optJSONObject("presupuestos")?.mapaDoble() ?: emptyMap(),
             acento = o.optInt("acento"),
             modoTema = o.optInt("modoTema"),
             iniciado = o.optBoolean("iniciado", true)

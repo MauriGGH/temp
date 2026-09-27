@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.personal.habitos.data.Bloque
 import com.personal.habitos.data.Repo
 import com.personal.habitos.data.inicioDeSemana
-import com.personal.habitos.ui.components.GlassCard
-import com.personal.habitos.ui.components.GlassList
+import com.personal.habitos.sistema.Calendario
+import com.personal.habitos.ui.components.Widget
 import com.personal.habitos.ui.theme.LocalGlassColors
 import java.time.LocalDate
 
@@ -71,6 +71,9 @@ fun AgendaScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
     val lunes = inicioDeSemana(hoy)
     var diaSel by remember { mutableStateOf(hoy.dayOfWeek.value) }
     var creando by remember { mutableStateOf(false) }
+    var duplicando by remember { mutableStateOf(false) }
+    var aviso by remember { mutableStateOf("") }
+    val contexto = androidx.compose.ui.platform.LocalContext.current
     val glass = LocalGlassColors.current
 
     Pantalla(
@@ -130,11 +133,10 @@ fun AgendaScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
 
             periodos.forEach { periodo ->
                 val bloques = estado.bloques.filter { it.dia == diaSel && it.periodo == periodo }
-                Text(periodo, style = MaterialTheme.typography.titleMedium)
-                if (bloques.isEmpty()) {
-                    GlassCard(modifier = Modifier.fillMaxWidth()) { Textito("Sin bloques.") }
-                } else {
-                    GlassList(modifier = Modifier.fillMaxWidth()) {
+                Widget(titulo = periodo, modifier = Modifier.fillMaxWidth()) {
+                    if (bloques.isEmpty()) {
+                        Textito("Sin bloques.")
+                    } else {
                         bloques.forEachIndexed { indice, bloque ->
                             if (indice > 0) Separador()
                             Row(
@@ -175,12 +177,70 @@ fun AgendaScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
                 }
             }
 
+            Widget(titulo = "Herramientas del día", modifier = Modifier.fillMaxWidth()) {
+                Chip("Duplicar este día a otros", false, Modifier.fillMaxWidth()) {
+                    duplicando = true
+                }
+                Chip("Mandar el día al calendario", false, Modifier.fillMaxWidth()) {
+                    val fecha = lunes.plusDays((diaSel - 1).toLong())
+                    val delDia = estado.bloques.filter { it.dia == diaSel }
+                    var puestos = 0
+                    delDia.forEach { bloque ->
+                        val hora = when (bloque.periodo) {
+                            "Mañana" -> 8
+                            "Tarde" -> 15
+                            else -> 20
+                        }
+                        if (Calendario.insertarEvento(contexto, bloque.titulo, fecha, hora, 60)) {
+                            puestos += 1
+                        }
+                    }
+                    aviso = if (puestos > 0) "$puestos eventos en tu calendario."
+                    else "No se pudo escribir. Abriendo el calendario…"
+                    if (puestos == 0 && delDia.isNotEmpty()) {
+                        val primero = delDia.first()
+                        Calendario.proponerEvento(contexto, primero.titulo, fecha, 8, 60)
+                    }
+                }
+                if (aviso.isNotBlank()) Textito(aviso)
+            }
+
             Textito("El tiempo libre también es un bloque planeado: descansar no es fallar.")
         }
     }
 
     if (creando) {
         DialogoBloque(dia = diaSel) { creando = false }
+    }
+
+    if (duplicando) {
+        var destinos by remember { mutableStateOf(setOf<Int>()) }
+        AlertDialog(
+            onDismissRequest = { duplicando = false },
+            title = { Text("Duplicar ${dias[diaSel - 1]} a…") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Textito("Los bloques de esos días se reemplazan por los de hoy.")
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        (1..7).forEach { dia ->
+                            if (dia != diaSel) {
+                                Chip(dias[dia - 1], destinos.contains(dia), Modifier.weight(1f)) {
+                                    destinos = if (destinos.contains(dia)) destinos - dia
+                                    else destinos + dia
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                BotonTexto("Duplicar") {
+                    if (destinos.isNotEmpty()) Repo.duplicarDia(diaSel, destinos.toList())
+                    duplicando = false
+                }
+            },
+            dismissButton = { BotonTexto("Cancelar") { duplicando = false } }
+        )
     }
 }
 

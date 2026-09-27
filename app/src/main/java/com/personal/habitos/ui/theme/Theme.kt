@@ -1,6 +1,7 @@
 package com.personal.habitos.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -78,11 +79,18 @@ fun HabitosTheme(
 
     val glass = if (darkTheme) glassOscuro else glassClaro
 
-    CompositionLocalProvider(LocalGlassColors provides glass) {
+    CompositionLocalProvider(
+        LocalGlassColors provides glass,
+        LocalContentColor provides colorScheme.onBackground
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = AppTypography,
-            content = content
-        )
+            typography = AppTypography
+        ) {
+            CompositionLocalProvider(
+                LocalContentColor provides colorScheme.onBackground,
+                content = content
+            )
+        }
     }
 }

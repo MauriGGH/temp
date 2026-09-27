@@ -40,7 +40,7 @@ import com.personal.habitos.ui.theme.LocalGlassColors
 @Composable
 fun Pantalla(
     titulo: String,
-    contentPadding: PaddingValues = PaddingValues(bottom = 132.dp),
+    contentPadding: PaddingValues = PaddingValues(bottom = 96.dp),
     subtitulo: String? = null,
     onVolver: (() -> Unit)? = null,
     accion: (@Composable () -> Unit)? = null,

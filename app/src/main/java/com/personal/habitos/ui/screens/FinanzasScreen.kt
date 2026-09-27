@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +28,7 @@ import com.personal.habitos.data.Repo
 import com.personal.habitos.data.balanceMes
 import com.personal.habitos.ui.components.GlassCard
 import com.personal.habitos.ui.components.GlassList
+import com.personal.habitos.ui.components.Widget
 import com.personal.habitos.ui.theme.LocalGlassColors
 import java.time.LocalDate
 import kotlin.math.roundToLong
@@ -41,6 +43,7 @@ fun FinanzasScreen(contentPadding: PaddingValues) {
     val estado = Repo.estado
     val (ingresos, gastos, balance) = balanceMes(estado.movimientos)
     var creando by remember { mutableStateOf<Boolean?>(null) }
+    var presupuestando by remember { mutableStateOf(false) }
 
     Pantalla(
         titulo = "Finanzas",
@@ -48,6 +51,24 @@ fun FinanzasScreen(contentPadding: PaddingValues) {
         subtitulo = "Ingresos y gastos de este mes."
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("INGRESOS")
+                    Text(pesos(ingresos), style = MaterialTheme.typography.headlineSmall, color = verde)
+                    Textito("este mes")
+                }
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("GASTOS")
+                    Text(pesos(gastos), style = MaterialTheme.typography.headlineSmall, color = rojo)
+                    Textito("este mes")
+                }
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("MOVS.")
+                    Text("${estado.movimientos.size}", style = MaterialTheme.typography.headlineSmall)
+                    Textito("registrados")
+                }
+            }
 
             GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Textito("Balance del mes")
@@ -67,6 +88,47 @@ fun FinanzasScreen(contentPadding: PaddingValues) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 BotonPrincipal("Gasto", Modifier.weight(1f)) { creando = false }
                 BotonPrincipal("Ingreso", Modifier.weight(1f)) { creando = true }
+            }
+
+            val porCategoria = estado.movimientos
+                .filter { !it.ingreso && it.fecha >= LocalDate.now().withDayOfMonth(1).toEpochDay() }
+                .groupBy { it.categoria }
+                .mapValues { (_, lista) -> lista.sumOf { it.monto } }
+
+            Widget(
+                titulo = "Gastos por categoría",
+                modifier = Modifier.fillMaxWidth(),
+                accion = { BotonTexto("Presupuesto") { presupuestando = true } }
+            ) {
+                if (porCategoria.isEmpty()) {
+                    Textito("Registra gastos y aquí aparece en qué se te va el mes.")
+                } else {
+                    val mayor = porCategoria.values.maxOrNull() ?: 1.0
+                    porCategoria.entries.sortedByDescending { it.value }.forEach { (categoria, monto) ->
+                        val tope = estado.presupuestos[categoria]
+                        val fraccion = (monto / (tope ?: mayor)).coerceIn(0.0, 1.0).toFloat()
+                        val excedido = tope != null && monto > tope
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(categoria, fontWeight = FontWeight.Bold)
+                                Text(
+                                    pesos(monto) + (tope?.let { " / " + pesos(it) } ?: ""),
+                                    color = if (excedido) rojo else MaterialTheme.colorScheme.onBackground,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            LinearProgressIndicator(
+                                progress = { fraccion },
+                                modifier = Modifier.fillMaxWidth(),
+                                color = if (excedido) rojo else MaterialTheme.colorScheme.primary,
+                                trackColor = LocalGlassColors.current.divider
+                            )
+                        }
+                    }
+                }
             }
 
             Text("Movimientos", style = MaterialTheme.typography.titleMedium)
@@ -111,10 +173,44 @@ fun FinanzasScreen(contentPadding: PaddingValues) {
         }
     }
 
+    if (presupuestando) {
+        DialogoPresupuesto { presupuestando = false }
+    }
+
     val tipo = creando
     if (tipo != null) {
         DialogoMovimiento(ingreso = tipo, onCerrar = { creando = null })
     }
+}
+
+@Composable
+private fun DialogoPresupuesto(onCerrar: () -> Unit) {
+    var categoria by remember { mutableStateOf("") }
+    var tope by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onCerrar,
+        title = { Text("Presupuesto mensual") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Campo(categoria, "Categoría") { categoria = it }
+                Campo(tope, "Tope del mes") { texto ->
+                    tope = texto.filter { it.isDigit() || it == '.' }
+                }
+                Textito("Cuando lo pases, la barra se pone en rojo.")
+            }
+        },
+        confirmButton = {
+            BotonTexto("Guardar") {
+                val valor = tope.toDoubleOrNull()
+                if (categoria.isNotBlank() && valor != null) {
+                    Repo.cambiarPresupuesto(categoria.trim(), valor)
+                }
+                onCerrar()
+            }
+        },
+        dismissButton = { BotonTexto("Cancelar", onCerrar) }
+    )
 }
 
 @Composable

@@ -1,17 +1,18 @@
 package com.personal.habitos.ui.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -32,8 +33,6 @@ import com.personal.habitos.ui.screens.NotasScreen
 import com.personal.habitos.ui.screens.RetosScreen
 import com.personal.habitos.ui.screens.RevisionScreen
 
-private val margenInferior = PaddingValues(bottom = 132.dp)
-
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val entry by navController.currentBackStackEntryAsState()
@@ -42,54 +41,63 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val enSeccionPrincipal = Destino.entries.any { it.ruta == ruta }
 
     GlassBackground {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onBackground,
+            bottomBar = {
+                GlassBottomBar(
+                    destinos = Destino.entries,
+                    actual = if (enSeccionPrincipal) actual else Destino.Mas,
+                    onSelect = { destino ->
+                        navController.navigate(destino.ruta) {
+                            popUpTo(Destino.Hoy.ruta) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+        ) { interno ->
+            val direccion = LocalLayoutDirection.current
+            val margen = PaddingValues(
+                start = interno.calculateStartPadding(direccion),
+                end = interno.calculateEndPadding(direccion),
+                top = 0.dp,
+                bottom = interno.calculateBottomPadding() + 12.dp
+            )
+
             NavHost(
                 navController = navController,
                 startDestination = Destino.Hoy.ruta,
                 modifier = Modifier.fillMaxSize(),
-                enterTransition = { fadeIn(tween(220)) },
-                exitTransition = { fadeOut(tween(160)) },
-                popEnterTransition = { fadeIn(tween(220)) },
-                popExitTransition = { fadeOut(tween(160)) }
+                enterTransition = { fadeIn(tween(200)) },
+                exitTransition = { fadeOut(tween(140)) },
+                popEnterTransition = { fadeIn(tween(200)) },
+                popExitTransition = { fadeOut(tween(140)) }
             ) {
                 composable(Destino.Hoy.ruta) {
                     HoyScreen(
-                        contentPadding = margenInferior,
+                        contentPadding = margen,
                         irAEntreno = { navController.navigate(Destino.Entreno.ruta) },
                         irAEstudio = { navController.navigate("estudio") },
                         irANotas = { navController.navigate("notas") },
                         irAAjustes = { navController.navigate("ajustes") }
                     )
                 }
-                composable(Destino.Habitos.ruta) { HabitosScreen(margenInferior) }
-                composable(Destino.Entreno.ruta) { EntrenoScreen(margenInferior) }
-                composable(Destino.Finanzas.ruta) { FinanzasScreen(margenInferior) }
+                composable(Destino.Habitos.ruta) { HabitosScreen(margen) }
+                composable(Destino.Entreno.ruta) { EntrenoScreen(margen) }
+                composable(Destino.Retos.ruta) { RetosScreen(margen) }
                 composable(Destino.Mas.ruta) {
-                    MasScreen(margenInferior) { destino -> navController.navigate(destino) }
+                    MasScreen(margen) { destino -> navController.navigate(destino) }
                 }
-                composable("retos") { RetosScreen(margenInferior) { navController.popBackStack() } }
-                composable("estudio") { EstudioScreen(margenInferior) { navController.popBackStack() } }
-                composable("agenda") { AgendaScreen(margenInferior) { navController.popBackStack() } }
-                composable("revision") { RevisionScreen(margenInferior) { navController.popBackStack() } }
-                composable("notas") { NotasScreen(margenInferior) { navController.popBackStack() } }
-                composable("ajustes") { AjustesScreen(margenInferior) { navController.popBackStack() } }
+                composable("finanzas") { FinanzasScreen(margen) }
+                composable("estudio") { EstudioScreen(margen) { navController.popBackStack() } }
+                composable("agenda") { AgendaScreen(margen) { navController.popBackStack() } }
+                composable("revision") { RevisionScreen(margen) { navController.popBackStack() } }
+                composable("notas") { NotasScreen(margen) { navController.popBackStack() } }
+                composable("ajustes") { AjustesScreen(margen) { navController.popBackStack() } }
             }
-
-            GlassBottomBar(
-                destinos = Destino.entries,
-                actual = if (enSeccionPrincipal) actual else Destino.Mas,
-                onSelect = { destino ->
-                    navController.navigate(destino.ruta) {
-                        popUpTo(Destino.Hoy.ruta) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 16.dp)
-            )
         }
     }
 }

@@ -35,8 +35,8 @@ import com.personal.habitos.data.marcasDe
 import com.personal.habitos.data.vecesEnSemana
 import com.personal.habitos.ui.components.AnilloProgreso
 import com.personal.habitos.ui.components.GlassCard
-import com.personal.habitos.ui.components.PuntoDia
 import com.personal.habitos.ui.components.GlassList
+import com.personal.habitos.ui.components.PuntoDia
 import com.personal.habitos.ui.theme.LocalGlassColors
 
 private val diasCortos = listOf("L", "M", "M", "J", "V", "S", "D")
@@ -230,7 +230,11 @@ private fun TarjetaHabito(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Etiqueta("$veces esta semana")
-            BotonTexto("Pausar") { onAEspera() }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                BotonTexto("↑") { Repo.moverHabito(habito, true) }
+                BotonTexto("↓") { Repo.moverHabito(habito, false) }
+                BotonTexto("Pausar") { onAEspera() }
+            }
         }
     }
 }

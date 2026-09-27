@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.personal.habitos.data.Habito
 import com.personal.habitos.data.Repo
 import com.personal.habitos.ui.components.GlassBackground
-import com.personal.habitos.ui.components.GlassCard
+import com.personal.habitos.ui.components.Widget
 import com.personal.habitos.ui.theme.LocalGlassColors
 
 private val diasCortosBienvenida = listOf("L", "M", "M", "J", "V", "S", "D")
@@ -61,8 +60,7 @@ fun BienvenidaScreen() {
                 }
 
                 if (paso == 0) {
-                    GlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Text("Cómo funciona", style = MaterialTheme.typography.titleMedium)
+                    Widget(titulo = "Cómo funciona", modifier = Modifier.fillMaxWidth()) {
                         Textito("Aquí no hay rachas que se reinicien ni mensajes de culpa.")
                         Textito("Se mide cuántas veces lo logras, no si fue perfecto.")
                         Textito("Trabajas pocos hábitos a la vez; los demás esperan su turno.")
@@ -72,12 +70,12 @@ fun BienvenidaScreen() {
                 } else {
                     Textito("Elige tus primeros hábitos. Puedes cambiarlos cuando quieras.")
 
-                    GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Widget(titulo = "Primer hábito", modifier = Modifier.fillMaxWidth()) {
                         Campo(nombre1, "Hábito") { nombre1 = it }
                         Campo(ancla1, "Cuándo o después de qué") { ancla1 = it }
                     }
 
-                    GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Widget(titulo = "Segundo hábito", modifier = Modifier.fillMaxWidth()) {
                         Campo(nombre2, "Hábito") { nombre2 = it }
                         Campo(ancla2, "Cuándo o después de qué") { ancla2 = it }
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

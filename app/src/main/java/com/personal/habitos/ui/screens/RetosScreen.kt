@@ -3,7 +3,6 @@ package com.personal.habitos.ui.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
@@ -30,11 +30,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.drawscope.rotate
 import com.personal.habitos.data.Recompensa
 import com.personal.habitos.data.Repo
 import com.personal.habitos.data.Reto
@@ -45,14 +43,14 @@ import com.personal.habitos.data.rangos
 import com.personal.habitos.data.siguienteRango
 import com.personal.habitos.ui.components.GlassCard
 import com.personal.habitos.ui.components.GlassList
-import com.personal.habitos.ui.theme.LocalGlassColors
 import com.personal.habitos.ui.components.InsigniaRango
 import com.personal.habitos.ui.components.coloresRango
+import com.personal.habitos.ui.theme.LocalGlassColors
 
 private fun colorRango(nombre: String): Color = coloresRango(nombre).claro
 
 @Composable
-fun RetosScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
+fun RetosScreen(contentPadding: PaddingValues, onVolver: (() -> Unit)? = null) {
     val estado = Repo.estado
     val rango = rangoDe(estado.puntos)
     val siguiente = siguienteRango(estado.puntos)
@@ -219,136 +217,95 @@ fun RetosScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
     }
 }
 
-/** Mascota original: cuerpo con degradado, brillo y adornos según el rango. */
+/** Guardián: casco angular, visor luminoso y cresta del color del rango. */
 @Composable
 private fun Mascota(color: Color, rango: String) {
-    val acento = colorRango(rango)
-    Canvas(modifier = Modifier.size(96.dp)) {
-        val a = size.width
-        val h = size.height
-        val centro = Offset(a / 2f, h * 0.54f)
-
-        if (rango in listOf("Diamante", "Ascendente", "Inmortal", "Radiante")) {
-            drawCircle(
-                brush = Brush.radialGradient(
-                    listOf(acento.copy(alpha = 0.28f), Color.Transparent),
-                    center = centro,
-                    radius = a * 0.55f
-                ),
-                radius = a * 0.55f,
-                center = centro
-            )
+    val cresta = colorRango(rango)
+    Canvas(modifier = Modifier.size(112.dp)) {
+        val u = size.width / 120f
+        fun p(vararg puntos: Pair<Float, Float>) = Path().apply {
+            puntos.forEachIndexed { i, (x, y) ->
+                if (i == 0) moveTo(x * u, y * u) else lineTo(x * u, y * u)
+            }
+            close()
         }
 
-        // Sombra en el piso
+        val centro = Offset(60f * u, 62f * u)
+
+        // Aura del rango
+        drawCircle(
+            brush = Brush.radialGradient(
+                listOf(cresta.copy(alpha = 0.30f), Color.Transparent),
+                center = centro,
+                radius = 56f * u
+            ),
+            radius = 56f * u,
+            center = centro
+        )
+
+        // Sombra
         drawOval(
-            color = Color.Black.copy(alpha = 0.18f),
-            topLeft = Offset(a * 0.24f, h * 0.88f),
-            size = Size(a * 0.52f, h * 0.07f)
+            color = Color.Black.copy(alpha = 0.32f),
+            topLeft = Offset(30f * u, 105f * u),
+            size = Size(60f * u, 10f * u)
+        )
+
+        val cuerpo = Brush.verticalGradient(
+            listOf(Color(0xFF2B3040), Color(0xFF14171F)),
+            startY = 12f * u,
+            endY = 104f * u
         )
 
         // Orejas
-        listOf(-1f, 1f).forEach { lado ->
-            drawCircle(
-                color = color.copy(alpha = 0.95f),
-                radius = a * 0.11f,
-                center = Offset(centro.x + lado * a * 0.25f, h * 0.20f)
-            )
-        }
+        drawPath(p(26f to 44f, 30f to 12f, 50f to 34f), cuerpo)
+        drawPath(p(94f to 44f, 90f to 12f, 70f to 34f), cuerpo)
 
-        // Cuerpo
-        drawOval(
-            brush = Brush.verticalGradient(
-                listOf(color, color.copy(alpha = 0.72f)),
-                startY = h * 0.14f,
-                endY = h * 0.90f
-            ),
-            topLeft = Offset(a * 0.16f, h * 0.14f),
-            size = Size(a * 0.68f, h * 0.76f)
-        )
-
-        // Brillo superior
-        drawOval(
-            brush = Brush.verticalGradient(
-                listOf(Color.White.copy(alpha = 0.35f), Color.Transparent),
-                startY = h * 0.14f,
-                endY = h * 0.50f
-            ),
-            topLeft = Offset(a * 0.24f, h * 0.17f),
-            size = Size(a * 0.52f, h * 0.30f)
-        )
-
-        // Cara
-        drawOval(
-            color = Color(0xFFFDFDFF),
-            topLeft = Offset(a * 0.26f, h * 0.40f),
-            size = Size(a * 0.48f, h * 0.36f)
-        )
-
-        // Ojos
-        listOf(-1f, 1f).forEach { lado ->
-            drawOval(
-                color = Color(0xFF15171C),
-                topLeft = Offset(centro.x + lado * a * 0.14f - a * 0.055f, h * 0.48f),
-                size = Size(a * 0.11f, h * 0.13f)
-            )
-            drawCircle(
-                color = Color.White,
-                radius = a * 0.022f,
-                center = Offset(centro.x + lado * a * 0.14f + a * 0.02f, h * 0.51f)
-            )
-        }
-
-        // Cachetes
-        listOf(-1f, 1f).forEach { lado ->
-            drawCircle(
-                color = acento.copy(alpha = 0.28f),
-                radius = a * 0.045f,
-                center = Offset(centro.x + lado * a * 0.20f, h * 0.63f)
-            )
-        }
-
-        // Sonrisa
+        // Casco
         drawPath(
-            path = Path().apply {
-                moveTo(centro.x - a * 0.07f, h * 0.65f)
-                quadraticBezierTo(centro.x, h * 0.72f, centro.x + a * 0.07f, h * 0.65f)
-            },
-            color = Color(0xFF15171C),
-            style = Stroke(width = a * 0.022f, cap = StrokeCap.Round)
+            p(60f to 20f, 96f to 40f, 96f to 74f, 60f to 100f, 24f to 74f, 24f to 40f),
+            cuerpo
+        )
+        drawPath(
+            p(60f to 20f, 96f to 40f, 96f to 74f, 60f to 100f, 24f to 74f, 24f to 40f),
+            color = Color.White.copy(alpha = 0.22f),
+            style = Stroke(width = 1.6f * u)
         )
 
-        // Corona desde Oro
-        if (rango != "Plata") {
-            drawPath(
-                path = Path().apply {
-                    moveTo(a * 0.33f, h * 0.17f)
-                    lineTo(a * 0.40f, h * 0.05f)
-                    lineTo(a * 0.50f, h * 0.14f)
-                    lineTo(a * 0.60f, h * 0.05f)
-                    lineTo(a * 0.67f, h * 0.17f)
-                    close()
-                },
-                brush = Brush.verticalGradient(
-                    listOf(acento, acento.copy(alpha = 0.7f)),
-                    startY = h * 0.05f,
-                    endY = h * 0.17f
-                )
-            )
-        }
+        // Placa interior del color de la app
+        drawPath(
+            p(60f to 28f, 86f to 44f, 86f to 70f, 60f to 90f, 34f to 70f, 34f to 44f),
+            color = color.copy(alpha = 0.85f),
+            style = Stroke(width = 2.4f * u)
+        )
 
-        // Destellos en Radiante
-        if (rango == "Radiante") {
-            repeat(6) { i ->
-                rotate(i * 60f, centro) {
-                    drawRoundRect(
-                        color = acento.copy(alpha = 0.55f),
-                        topLeft = Offset(centro.x - a * 0.012f, h * 0.02f),
-                        size = Size(a * 0.024f, h * 0.07f),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(a * 0.012f)
-                    )
-                }
-            }
+        // Visores
+        drawPath(p(36f to 54f, 54f to 50f, 54f to 62f, 36f to 60f), cresta)
+        drawPath(p(84f to 54f, 66f to 50f, 66f to 62f, 84f to 60f), cresta)
+
+        // Núcleo
+        drawPath(
+            p(60f to 64f, 68f to 72f, 60f to 84f, 52f to 72f),
+            brush = Brush.verticalGradient(
+                listOf(color, color.copy(alpha = 0.55f)),
+                startY = 64f * u,
+                endY = 84f * u
+            )
+        )
+
+        // Mandíbula
+        drawPath(p(52f to 86f, 68f to 86f, 60f to 96f), color = Color(0xFF1B1F29))
+
+        // Cresta del rango
+        drawPath(p(48f to 22f, 60f to 2f, 72f to 22f, 60f to 16f), color = cresta)
+
+        // Hombreras
+        drawPath(p(14f to 66f, 26f to 58f, 30f to 78f, 16f to 80f), cuerpo)
+        drawPath(p(106f to 66f, 94f to 58f, 90f to 78f, 104f to 80f), cuerpo)
+        listOf(
+            p(14f to 66f, 26f to 58f, 30f to 78f, 16f to 80f),
+            p(106f to 66f, 94f to 58f, 90f to 78f, 104f to 80f)
+        ).forEach {
+            drawPath(it, color = cresta.copy(alpha = 0.5f), style = Stroke(width = 1.2f * u))
         }
     }
 }

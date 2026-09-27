@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.personal.habitos.data.Nota
 import com.personal.habitos.data.Repo
 import com.personal.habitos.ui.components.GlassCard
+import com.personal.habitos.ui.components.Widget
 import com.personal.habitos.ui.theme.LocalGlassColors
 import java.time.LocalDate
 
@@ -39,7 +40,23 @@ fun NotasScreen(contentPadding: PaddingValues, onVolver: () -> Unit) {
         onVolver = onVolver
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("NOTAS")
+                    Text("${estado.notas.size}", style = MaterialTheme.typography.headlineSmall)
+                    Textito("guardadas")
+                }
+                GlassCard(modifier = Modifier.weight(1f), contentPadding = 14.dp, spacing = 2.dp) {
+                    Textito("EN CASA")
+                    Text(
+                        "${estado.notas.count { it.lugar == "Casa" }}",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Textito("de ellas")
+                }
+            }
+
+            Widget(titulo = "Nueva nota", modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = texto,
                     onValueChange = { texto = it },
