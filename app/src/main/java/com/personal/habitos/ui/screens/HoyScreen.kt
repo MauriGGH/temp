@@ -42,6 +42,7 @@ import com.personal.habitos.ui.components.Widget
 import com.personal.habitos.ui.theme.LocalGlassColors
 import java.time.LocalDate
 import java.util.Locale
+import java.time.format.TextStyle as EstiloTexto
 
 private val etiquetasDias = listOf("L", "M", "M", "J", "V", "S", "D")
 
